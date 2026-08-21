@@ -749,6 +749,20 @@ describe('updateScalar', () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain('path');
   });
+
+  it('refuses to edit malformed YAML instead of masking the error', () => {
+    const r = updateScalar('key: [unclosed', ['key'], 'x');
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain('YAML errors');
+  });
+
+  it('compares values strictly: a string over a numeric scalar is a change, not a no-op', () => {
+    // Contract: callers pass schema-typed values (numbers as numbers).
+    // '200' !== 200, so this rewrites the scalar as a quoted string.
+    const r = updateScalar('status: 200\n', ['status'], '200');
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.text).toContain('"200"');
+  });
 });
 ```
 
@@ -763,6 +777,11 @@ Expected: FAIL (module not found).
 ```ts
 import { parseDocument } from 'yaml';
 
+/**
+ * Single-value, comment-preserving edit. The no-op check compares strictly
+ * (`===`): callers must pass the schema-typed value (numbers as numbers,
+ * booleans as booleans), or a type-changing rewrite will occur.
+ */
 export function updateScalar(
   text: string,
   path: (string | number)[],
