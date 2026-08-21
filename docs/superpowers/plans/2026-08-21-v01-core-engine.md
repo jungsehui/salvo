@@ -1577,6 +1577,12 @@ describe('runCases', () => {
     expect(results[0]?.caseIndex).toBe(0);
   });
 
+  it('deduplicates selected indexes so a case never fires twice', async () => {
+    const results = await runCases({ file: FILE, envName: 'test', manifest: undefined, selected: [1, 1], deps });
+    expect(results).toHaveLength(1);
+    expect(results[0]?.caseIndex).toBe(1);
+  });
+
   it('runs only the selected indexes, preserving file order', async () => {
     const results = await runCases({ file: FILE, envName: 'test', manifest: undefined, selected: [1], deps });
     expect(results).toHaveLength(1);
@@ -1629,7 +1635,8 @@ export async function runCases(args: {
   const { file, envName, manifest, deps } = args;
   const env = manifest?.environments?.[envName];
   const all = file.cases ?? [];
-  const indexes = args.selected === 'all' ? all.map((_, i) => i) : [...args.selected].sort((a, b) => a - b);
+  // Dedupe: caseIndex is an identity, and a duplicate would double-fire the transport.
+  const indexes = args.selected === 'all' ? all.map((_, i) => i) : [...new Set(args.selected)].sort((a, b) => a - b);
 
   const results: RunResult[] = [];
   for (const i of indexes) {
