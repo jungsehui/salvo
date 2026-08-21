@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/jungsehui/salvo/main/schemas/salvo-file.schema.json",
+  "title": "SalvoFile",
+  "description": "A Salvo request file: one request, many named cases.",
+  "type": "object",
+  "required": ["salvo", "request"],
+  "properties": {
+    "salvo": { "type": "integer", "const": 1, "description": "Format major version." },
+    "request": {
+      "title": "SalvoRequest",
+      "type": "object",
+      "required": ["url", "operation"],
+      "properties": {
+        "method": { "type": "string", "enum": ["POST"], "default": "POST" },
+        "url": { "type": "string", "description": "May contain {{var}} placeholders." },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "operation": { "type": "string", "description": "GraphQL document. No {{}} substitution here; use GraphQL variables." },
+        "operationName": { "type": "string" },
+        "variables": { "type": "object", "description": "GraphQL variables. String values may contain {{var}} placeholders." },
+        "timeoutMs": { "type": "integer", "minimum": 1, "default": 30000 }
+      }
+    },
+    "vars": {
+      "type": "object",
+      "additionalProperties": { "type": ["string", "number", "boolean", "null"] },
+      "description": "File-level template variables. Precedence: environment < file < case."
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "title": "SalvoCase",
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "description": "Display name. Identity is the array index." },
+          "environments": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Whitelist. When present, the case is skipped in environments not listed."
+          },
+          "vars": { "type": "object", "additionalProperties": { "type": ["string", "number", "boolean", "null"] } },
+          "expect": { "$ref": "#/definitions/expect" }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "expect": {
+      "title": "Expect",
+      "type": "object",
+      "properties": {
+        "status": {
+          "oneOf": [
+            { "type": "integer", "minimum": 100, "maximum": 599 },
+            { "type": "string", "pattern": "^[1-5]xx$" }
+          ]
+        },
+        "headers": { "type": "object", "additionalProperties": { "$ref": "#/definitions/matcher" } },
+        "json": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/definitions/matcher" },
+          "description": "Keys are body paths: dotted segments, [n] indexes, [\"quoted\"] for keys containing dots."
+        }
+      }
+    },
+    "matcher": {
+      "title": "Matcher",
+      "oneOf": [
+        { "type": ["string", "number", "boolean", "null"], "description": "Literal equality." },
+        {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "exists": { "type": "boolean" },
+            "contains": { "type": "string" },
+            "matches": { "type": "string", "description": "ECMAScript regular expression." },
+            "oneOf": { "type": "array", "items": { "type": ["string", "number", "boolean", "null"] } },
+            "length": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

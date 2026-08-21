@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/jungsehui/salvo/main/schemas/salvo-manifest.schema.json",
+  "title": "SalvoManifest",
+  "description": "salvo.yaml at the collection root: project identity, environments, schema source.",
+  "type": "object",
+  "required": ["salvo", "id"],
+  "properties": {
+    "salvo": { "type": "integer", "const": 1 },
+    "id": { "type": "string", "minLength": 8, "description": "Stable project id (uuid recommended). Scopes secret storage; survives folder moves and git worktrees." },
+    "environments": {
+      "type": "object",
+      "additionalProperties": {
+        "title": "EnvironmentDef",
+        "type": "object",
+        "properties": {
+          "vars": { "type": "object", "additionalProperties": { "type": ["string", "number", "boolean", "null"] } },
+          "headers": { "type": "object", "additionalProperties": { "type": "string" } }
+        }
+      }
+    },
+    "schema": {
+      "title": "SchemaSource",
+      "type": "object",
+      "description": "GraphQL schema source, consumed in plan 2. Exactly one of sdl / introspection / url.",
+      "properties": {
+        "sdl": { "type": "string", "description": "Path to an SDL file, relative to this manifest." },
+        "introspection": { "type": "string", "description": "Path to an introspection-result JSON file." },
+        "url": { "type": "string", "description": "Endpoint for live introspection. Opt-in; many servers disable introspection." },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    }
+  }
+}
