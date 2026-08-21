@@ -1201,6 +1201,21 @@ describe('getAtPath', () => {
   it('treats an explicit null as found', () => {
     expect(getAtPath({ a: null }, 'a')).toEqual({ ok: true, found: true, value: null });
   });
+
+  it('rejects leading, trailing, and consecutive dots', () => {
+    expect(parsePath('.a').ok).toBe(false);
+    expect(parsePath('a.').ok).toBe(false);
+    expect(parsePath('a..b').ok).toBe(false);
+  });
+
+  it('does not walk the prototype chain', () => {
+    expect(getAtPath({ a: 1 }, 'constructor')).toEqual({ ok: true, found: false });
+    expect(getAtPath({ a: 1 }, '__proto__')).toEqual({ ok: true, found: false });
+  });
+
+  it('parses quoted keys containing "]"', () => {
+    expect(getAtPath({ 'x]y': 1 }, '["x]y"]')).toEqual({ ok: true, found: true, value: 1 });
+  });
 });
 ```
 
@@ -1221,26 +1236,32 @@ export function parsePath(path: string): { ok: true; segments: (string | number)
   while (i < path.length) {
     const ch = path[i];
     if (ch === '.') {
+      if (segments.length === 0) return err('leading "."');
       i += 1;
-      if (i >= path.length) return err('trailing "."');
+      const next = path[i];
+      if (next === undefined) return err('trailing "."');
+      if (next === '.') return err('empty segment');
+      if (next === '[') return err('"." must be followed by a key, not "["');
     } else if (ch === '[') {
-      const close = path.indexOf(']', i);
-      if (close === -1) return err('unclosed "["');
-      const inner = path.slice(i + 1, close);
-      if (/^\d+$/.test(inner)) {
-        segments.push(Number(inner));
-      } else if (inner.length >= 2 && inner.startsWith('"') && inner.endsWith('"')) {
-        segments.push(inner.slice(1, -1));
+      if (path[i + 1] === '"') {
+        // Quote-aware scan so keys containing "]" parse correctly.
+        const closeQuote = path.indexOf('"', i + 2);
+        if (closeQuote === -1) return err('unclosed quote');
+        if (path[closeQuote + 1] !== ']') return err('expected "]" after quoted key');
+        segments.push(path.slice(i + 2, closeQuote));
+        i = closeQuote + 2;
       } else {
-        return err('brackets must hold an index or a "quoted" key');
+        const close = path.indexOf(']', i);
+        if (close === -1) return err('unclosed "["');
+        const inner = path.slice(i + 1, close);
+        if (!/^\d+$/.test(inner)) return err('brackets must hold an index or a "quoted" key');
+        segments.push(Number(inner));
+        i = close + 1;
       }
-      i = close + 1;
     } else {
       let j = i;
       while (j < path.length && path[j] !== '.' && path[j] !== '[') j += 1;
-      const ident = path.slice(i, j);
-      if (ident.length === 0) return err('empty segment');
-      segments.push(ident);
+      segments.push(path.slice(i, j));
       i = j;
     }
   }
@@ -1261,7 +1282,8 @@ export function getAtPath(
       if (!Array.isArray(cur) || seg >= cur.length) return { ok: true, found: false };
       cur = cur[seg];
     } else {
-      if (cur === null || typeof cur !== 'object' || Array.isArray(cur) || !(seg in cur)) {
+      // Own properties only: 'constructor' on a plain object must be absent.
+      if (cur === null || typeof cur !== 'object' || Array.isArray(cur) || !Object.prototype.hasOwnProperty.call(cur, seg)) {
         return { ok: true, found: false };
       }
       cur = (cur as Record<string, unknown>)[seg];
