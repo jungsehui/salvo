@@ -43,7 +43,9 @@ HTTP는 백엔드 엔진만 만들고 GUI를 붙이지 않는다. GraphQL 전송
 5. 각 케이스의 `expect`가 통과/실패로 응답 뷰어에 표시된다 (뷰어는 v0.1 포함)
 6. 토큰은 SecretStorage에 있고 파일에는 `{{secret:NAME}}`만 남는다
 7. `salvo.yaml`에 환경 2개를 정의하고 상태바에서 전환할 수 있다
-8. 마켓플레이스에 `jungsehui.salvo`로 공개되어 있다 (pre-release 채널)
+8. **회사 환경 없이도 동작이 증명된다**: 레포의 `examples/quickstart`가
+   공개 데모 GraphQL API를 상대로 그대로 실행된다 (Global-first, 결정 10)
+9. 마켓플레이스에 `jungsehui.salvo`로 공개되어 있다 (pre-release 채널)
 
 ### 작업 분해
 

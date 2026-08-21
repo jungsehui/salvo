@@ -286,6 +286,32 @@ pull 기반 설계는 안전하다. push 유실을 전제하고 설계했기 때
 5. **붙여넣기 재들여쓰기.** 블록 스칼라는 들여쓰기에 민감하다. GraphiQL에서
    복사한 쿼리를 GUI에 붙여넣으면 GUI가 재들여쓰기를 책임진다
 
+## 결정 10: Global-first. 회사 전유물이 되지 않게 하는 구조적 장치
+
+이 도구의 검증 환경이 특정 회사(introspection off + federation + 대형 SDL)라는
+사실이 코드에 스며드는 것을 구조로 막는다. 규칙이 아니라 장치로 만든다.
+
+1. **서버 가정은 GraphQL over HTTP 스펙 하나뿐이다.** `POST` JSON
+   `{query, variables, operationName}`. Apollo/NestJS/Hasura/graphql-yoga
+   어느 서버든 이 스펙만 지키면 동작해야 한다. APQ 해시, federation
+   디렉티브 인식 같은 벤더 특화는 전부 opt-in 확장이다
+2. **하드코딩된 기본값 금지.** 기본 endpoint 없음, 기본 스키마 경로 없음,
+   기본 헤더 없음. 전부 `salvo.yaml`(커밋되는 사용자 설정)에서 온다.
+   "합리적 기본값"이 필요한 자리는 quickstart 예제가 대신한다
+3. **레포와 테스트에 회사 데이터 0.** 픽스처는 전부 합성 스키마
+   (`tests/fixtures/*.graphql`, 20~50 타입짜리 자체 제작)를 쓴다.
+   예제는 공개 데모 API(예: countries.trevorblades.com)를 가리킨다.
+   사내 246KB SDL은 성능 검증에만 로컬로 쓰고 절대 커밋하지 않는다
+4. **사용자 노출 문자열은 전부 영어.** 커맨드 이름, 설정 설명, 오류
+   메시지, webview UI. 한국어는 VS Code 표준 l10n(`package.nls.ko.json`,
+   `vscode.l10n`)으로 v1.0 이후 추가한다. 코드 주석은 한국어 허용
+   (`conventions.md`의 기존 규칙 유지)
+5. **경로 처리는 크로스 플랫폼.** `path.join`/`vscode.Uri` 경유, 구분자
+   하드코딩 금지. macOS에서 먼저 검증하되 macOS 전용 코드를 만들지 않는다
+6. **케이스 이름 등 사용자 데이터는 유니코드 자유.** 한글 케이스 이름이
+   1급으로 동작해야 하듯 아랍어, 일본어도 동작한다. 내부 식별자를 이름이
+   아닌 인덱스로 정한 결정 4가 이것을 공짜로 보장한다
+
 ## 모듈 경계 원칙
 
 - `extension.ts`는 얇게. composition root + 커맨드 등록만

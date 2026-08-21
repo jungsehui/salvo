@@ -50,6 +50,14 @@ against servers with introspection **disabled**, by reading a local SDL file.
    `introspection: false` with no `NODE_ENV` branch.
 5. **No account, no login, no telemetry.** Not "off by default". Absent.
    This is a stated differentiator, see `.claude/research.md`.
+6. **Generic by design. This is a global tool, not a company tool.**
+   No company-specific defaults, paths, URLs, or schema assumptions anywhere
+   in code, examples, tests, or fixtures. Anything server-specific (endpoint,
+   schema source, headers, auth) is user configuration in `salvo.yaml` /
+   `.salvo` files. All user-facing strings are English (l10n later via
+   VS Code `package.nls.*`). The only protocol assumption is the GraphQL
+   over HTTP spec; Apollo-specific behaviors (APQ, federation directives)
+   are opt-in extras, never baked in.
 
 ## Slash commands
 
