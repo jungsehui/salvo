@@ -1468,9 +1468,6 @@ import { getAtPath } from './json-path';
 export function evaluateExpect(expect: Expect | undefined, response: HttpResponse): Assertion[] {
   const out: Assertion[] = [];
 
-  const status = expect?.status ?? '2xx';
-  out.push(statusAssertion(status, response.status));
-
   for (const [name, spec] of Object.entries(expect?.headers ?? {})) {
     const value = response.headers[name.toLowerCase()];
     const r = evaluateMatcher(spec, { found: value !== undefined, value });
@@ -1490,6 +1487,9 @@ export function evaluateExpect(expect: Expect | undefined, response: HttpRespons
     const r = evaluateMatcher(spec, lookup);
     out.push({ target: `json ${path}`, ...r });
   }
+
+  // Status goes last so content assertions surface first in results.
+  out.push(statusAssertion(expect?.status ?? '2xx', response.status));
 
   return out;
 }
