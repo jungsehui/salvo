@@ -1713,7 +1713,11 @@ beforeAll(async () => {
       let body = '';
       req.on('data', (c) => (body += c));
       req.on('end', () => {
-        res.writeHead(200, { 'Content-Type': 'application/json', 'X-Echo-Method': req.method ?? '' });
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'X-Echo-Method': req.method ?? '',
+          'X-Echo-CT': req.headers['content-type'] ?? '',
+        });
         res.end(JSON.stringify({ received: JSON.parse(body) }));
       });
     } else if (req.url === '/notjson') {
@@ -1749,6 +1753,12 @@ describe('createFetchTransport', () => {
     expect(r.durationMs).toBeGreaterThanOrEqual(0);
   });
 
+  it('lets a case-variant Content-Type override the default instead of comma-joining', async () => {
+    const custom = { ...req(`${base}/json`), headers: { 'Content-Type': 'application/graphql-response+json' } };
+    const r = await send(custom);
+    expect(r.headers['x-echo-ct']).toBe('application/graphql-response+json');
+  });
+
   it('keeps a non-JSON body as text with json undefined', async () => {
     const r = await send(req(`${base}/notjson`));
     expect(r.status).toBe(502);
@@ -1779,9 +1789,14 @@ export function createFetchTransport(): Transport {
     const timer = setTimeout(() => controller.abort(), req.timeoutMs);
     const started = performance.now();
     try {
+      // Normalize keys before merging: a case-variant 'Content-Type' in a plain
+      // object spread would become a SECOND key, and fetch's Headers would
+      // comma-join both values instead of overriding.
+      const requestHeaders: Record<string, string> = { 'content-type': 'application/json' };
+      for (const [k, v] of Object.entries(req.headers)) requestHeaders[k.toLowerCase()] = v;
       const res = await fetch(req.url, {
         method: req.method,
-        headers: { 'content-type': 'application/json', ...req.headers },
+        headers: requestHeaders,
         body: JSON.stringify(req.body),
         signal: controller.signal,
       });
