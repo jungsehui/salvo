@@ -173,7 +173,8 @@ describe('core purity', () => {
     expect(files.length).toBeGreaterThan(0); // guard must actually see files
     for (const f of files) {
       const src = readFileSync(f, 'utf8');
-      expect(src, `${f} imports vscode`).not.toMatch(/from ['"]vscode['"]/);
+      // Any 'vscode' module string: static/side-effect/dynamic import and require alike.
+      expect(src, `${f} references the vscode module`).not.toMatch(/['"]vscode['"]/);
     }
   });
 });
