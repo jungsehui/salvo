@@ -93,7 +93,7 @@ One module = one responsibility. `format/` never resolves variables; `vars/` nev
     "check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gen:types": "json2ts -i schemas/salvo-file.schema.json -o src/core/generated/salvo-file.ts --additionalProperties false && json2ts -i schemas/salvo-manifest.schema.json -o src/core/generated/salvo-manifest.ts --additionalProperties false",
+    "gen:types": "json2ts -i schemas/salvo-file.schema.json -o src/core/generated/salvo-file.ts && json2ts -i schemas/salvo-manifest.schema.json -o src/core/generated/salvo-manifest.ts",
     "gen:check": "npm run gen:types && git diff --exit-code src/core/generated/"
   },
   "dependencies": {
@@ -109,7 +109,7 @@ One module = one responsibility. `format/` never resolves variables; `vars/` nev
 }
 ```
 
-Note: `--additionalProperties false` only affects the *generated TS types* (no index signatures cluttering autocomplete). The JSON Schemas themselves stay permissive (Global Constraints: unknown keys allowed).
+Note: generated interfaces will carry `[k: string]: unknown` index signatures because the schemas are permissive (Global Constraints: unknown keys allowed). That is intended; known properties stay fully typed.
 
 `tsconfig.json`:
 ```json
@@ -156,6 +156,9 @@ Expected: lockfile created, no errors.
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const CORE_DIR = fileURLToPath(new URL('../../src/core', import.meta.url));
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -166,7 +169,7 @@ function walk(dir: string): string[] {
 
 describe('core purity', () => {
   it('src/core never imports vscode', () => {
-    const files = walk(join(__dirname, '../../src/core'));
+    const files = walk(CORE_DIR);
     expect(files.length).toBeGreaterThan(0); // guard must actually see files
     for (const f of files) {
       const src = readFileSync(f, 'utf8');
@@ -273,7 +276,7 @@ import Ajv from 'ajv';
 import fileSchema from '../../schemas/salvo-file.schema.json';
 import manifestSchema from '../../schemas/salvo-manifest.schema.json';
 
-const ajv = new Ajv({ allErrors: true });
+const ajv = new Ajv({ allErrors: true, allowUnionTypes: true });
 
 describe('salvo-file schema', () => {
   const validate = ajv.compile(fileSchema);
@@ -587,7 +590,7 @@ import type { SalvoFile } from '../generated/salvo-file';
 import type { ParseIssue } from '../types';
 import fileSchema from '../../../schemas/salvo-file.schema.json';
 
-const ajv = new Ajv({ allErrors: true });
+const ajv = new Ajv({ allErrors: true, allowUnionTypes: true });
 const validate = ajv.compile<SalvoFile>(fileSchema);
 
 export type ParseFileResult =
@@ -853,7 +856,7 @@ import type { SalvoManifest } from '../generated/salvo-manifest';
 import type { ParseIssue } from '../types';
 import manifestSchema from '../../../schemas/salvo-manifest.schema.json';
 
-const ajv = new Ajv({ allErrors: true });
+const ajv = new Ajv({ allErrors: true, allowUnionTypes: true });
 const validate = ajv.compile<SalvoManifest>(manifestSchema);
 
 export type ParseManifestResult =
@@ -1282,13 +1285,14 @@ The six matchers, plus the `status` / `headers` / `json` slots. Every `Assertion
 ```ts
 import { describe, it, expect } from 'vitest';
 import { evaluateExpect } from '../../src/core/assert/evaluate-expect';
+import type { Expect } from '../../src/core/generated/salvo-file';
 import type { HttpResponse } from '../../src/core/types';
 
 const resp = (over: Partial<HttpResponse> = {}): HttpResponse => ({
   status: 200,
   headers: { 'content-type': 'application/json' },
   bodyText: '',
-  json: { data: { me: { id: 'u1' } }, errors: undefined, items: ['a', 'b'] },
+  json: { data: { me: { id: 'u1' } }, items: ['a', 'b'] },
   durationMs: 5,
   ...over,
 });
@@ -1313,7 +1317,7 @@ describe('evaluateExpect', () => {
   });
 
   it('runs all six matchers on json paths', () => {
-    const e = {
+    const e: Expect = {
       json: {
         'data.me.id': 'u1',                     // literal equals
         errors: { exists: false },              // exists
@@ -1321,7 +1325,7 @@ describe('evaluateExpect', () => {
         'items[0]': { oneOf: ['a', 'z'] },      // oneOf
         'data.me': { contains: 'id' },          // contains on a non-string fails politely
       },
-    } as const;
+    };
     const a = evaluateExpect(e, resp());
     const byTarget = Object.fromEntries(a.map((x) => [x.target, x]));
     expect(byTarget['json data.me.id']?.pass).toBe(true);
@@ -1838,7 +1842,7 @@ a local fixture server.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createServer, type Server } from 'node:http';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseSalvoFile } from '../../src/core/format/parse-salvo-file';
 import { parseManifest } from '../../src/core/format/parse-manifest';
 import { runCases } from '../../src/core/runner/run-cases';
@@ -1868,8 +1872,8 @@ afterAll(() => new Promise<void>((r) => server.close(() => r())));
 
 describe('quickstart end to end', () => {
   it('parses the shipped example files and runs both cases', async () => {
-    const fileText = readFileSync(join(__dirname, '../../examples/quickstart/countries.salvo'), 'utf8');
-    const manifestText = readFileSync(join(__dirname, '../../examples/quickstart/salvo.yaml'), 'utf8');
+    const fileText = readFileSync(fileURLToPath(new URL('../../examples/quickstart/countries.salvo', import.meta.url)), 'utf8');
+    const manifestText = readFileSync(fileURLToPath(new URL('../../examples/quickstart/salvo.yaml', import.meta.url)), 'utf8');
 
     const parsedFile = parseSalvoFile(fileText);
     const parsedManifest = parseManifest(manifestText);
