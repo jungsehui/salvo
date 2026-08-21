@@ -12,7 +12,11 @@ beforeAll(async () => {
       let body = '';
       req.on('data', (c) => (body += c));
       req.on('end', () => {
-        res.writeHead(200, { 'Content-Type': 'application/json', 'X-Echo-Method': req.method ?? '' });
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'X-Echo-Method': req.method ?? '',
+          'X-Echo-CT': req.headers['content-type'] ?? '',
+        });
         res.end(JSON.stringify({ received: JSON.parse(body) }));
       });
     } else if (req.url === '/notjson') {
@@ -46,6 +50,12 @@ describe('createFetchTransport', () => {
     expect(r.headers['x-echo-method']).toBe('POST');           // header keys lower-cased
     expect((r.json as { received: { query: string } }).received.query).toBe('query { ok }');
     expect(r.durationMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it('lets a case-variant Content-Type override the default instead of comma-joining', async () => {
+    const custom = { ...req(`${base}/json`), headers: { 'Content-Type': 'application/graphql-response+json' } };
+    const r = await send(custom);
+    expect(r.headers['x-echo-ct']).toBe('application/graphql-response+json');
   });
 
   it('keeps a non-JSON body as text with json undefined', async () => {
