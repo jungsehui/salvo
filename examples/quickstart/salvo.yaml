@@ -1,0 +1,7 @@
+salvo: 1
+# Any stable string works; a uuid avoids collisions between projects.
+id: 3c9c1f2e-quickstart-demo
+environments:
+  demo:
+    vars:
+      baseUrl: https://countries.trevorblades.com

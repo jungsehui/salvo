@@ -1,0 +1,28 @@
+salvo: 1
+request:
+  url: "{{baseUrl}}/graphql"
+  operation: |
+    query Continent($code: ID!) {
+      continent(code: $code) {
+        name
+        countries { code }
+      }
+    }
+  variables:
+    code: "{{code}}"
+
+cases:
+  - name: Europe exists
+    vars: { code: EU }
+    expect:
+      status: 200
+      json:
+        "data.continent.name": Europe
+        "errors": { exists: false }
+
+  - name: unknown code returns null
+    vars: { code: ZZ }
+    expect:
+      status: 200
+      json:
+        "data.continent": { exists: true }
