@@ -1,0 +1,26 @@
+{
+  "name": "salvo",
+  "displayName": "Salvo",
+  "description": "A file-first API client for VS Code: one request, many named cases",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/jungsehui/salvo" },
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "gen:types": "json2ts -i schemas/salvo-file.schema.json -o src/core/generated/salvo-file.ts && json2ts -i schemas/salvo-manifest.schema.json -o src/core/generated/salvo-manifest.ts",
+    "gen:check": "npm run gen:types && git diff --exit-code src/core/generated/"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "json-schema-to-typescript": "^15.0.4",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
