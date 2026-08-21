@@ -1,5 +1,10 @@
 import { parseDocument } from 'yaml';
 
+/**
+ * Single-value, comment-preserving edit. The no-op check compares strictly
+ * (`===`): callers must pass the schema-typed value (numbers as numbers,
+ * booleans as booleans), or a type-changing rewrite will occur.
+ */
 export function updateScalar(
   text: string,
   path: (string | number)[],
