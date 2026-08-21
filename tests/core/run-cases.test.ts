@@ -34,6 +34,12 @@ describe('runCases', () => {
     expect(results[0]?.caseIndex).toBe(0);
   });
 
+  it('deduplicates selected indexes so a case never fires twice', async () => {
+    const results = await runCases({ file: FILE, envName: 'test', manifest: undefined, selected: [1, 1], deps });
+    expect(results).toHaveLength(1);
+    expect(results[0]?.caseIndex).toBe(1);
+  });
+
   it('runs only the selected indexes, preserving file order', async () => {
     const results = await runCases({ file: FILE, envName: 'test', manifest: undefined, selected: [1], deps });
     expect(results).toHaveLength(1);

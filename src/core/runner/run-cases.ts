@@ -14,7 +14,8 @@ export async function runCases(args: {
   const { file, envName, manifest, deps } = args;
   const env = manifest?.environments?.[envName];
   const all = file.cases ?? [];
-  const indexes = args.selected === 'all' ? all.map((_, i) => i) : [...args.selected].sort((a, b) => a - b);
+  // Dedupe: caseIndex is an identity, and a duplicate would double-fire the transport.
+  const indexes = args.selected === 'all' ? all.map((_, i) => i) : [...new Set(args.selected)].sort((a, b) => a - b);
 
   const results: RunResult[] = [];
   for (const i of indexes) {
