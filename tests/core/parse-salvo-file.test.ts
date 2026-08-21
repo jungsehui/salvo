@@ -29,6 +29,7 @@ describe('parseSalvoFile', () => {
     expect(r.ok).toBe(false);
     expect(r.issues[0]?.severity).toBe('error');
     expect(r.issues[0]?.line).toBe(2);
+    expect(r.issues[0]?.col).toBe(19); // 1-based column of the offending token
   });
 
   it('reports schema violations at the offending node line', () => {
@@ -37,6 +38,7 @@ describe('parseSalvoFile', () => {
     expect(r.ok).toBe(false);
     const issue = r.issues.find((i) => i.message.includes('/request/url'));
     expect(issue?.line).toBe(3);
+    expect(issue?.col).toBe(8); // 1-based column of the offending value node
   });
 
   it('warns when the operation body contains {{ (substitution is forbidden there)', () => {
