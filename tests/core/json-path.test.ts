@@ -31,4 +31,19 @@ describe('getAtPath', () => {
   it('treats an explicit null as found', () => {
     expect(getAtPath({ a: null }, 'a')).toEqual({ ok: true, found: true, value: null });
   });
+
+  it('rejects leading, trailing, and consecutive dots', () => {
+    expect(parsePath('.a').ok).toBe(false);
+    expect(parsePath('a.').ok).toBe(false);
+    expect(parsePath('a..b').ok).toBe(false);
+  });
+
+  it('does not walk the prototype chain', () => {
+    expect(getAtPath({ a: 1 }, 'constructor')).toEqual({ ok: true, found: false });
+    expect(getAtPath({ a: 1 }, '__proto__')).toEqual({ ok: true, found: false });
+  });
+
+  it('parses quoted keys containing "]"', () => {
+    expect(getAtPath({ 'x]y': 1 }, '["x]y"]')).toEqual({ ok: true, found: true, value: 1 });
+  });
 });
