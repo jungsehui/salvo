@@ -1086,8 +1086,11 @@ export async function resolveCase(args: {
         if (raw === undefined) {
           missingVars.add(name!);
         } else {
-          out += typeof raw === 'string' && PLACEHOLDER.test(raw) ? await sub(raw) : String(raw ?? '');
+          // Reset lastIndex BEFORE recursing: matchAll seeds its clone from the
+          // original regex's lastIndex, so a stale offset would skip the match.
+          const hasPlaceholder = PLACEHOLDER.test(String(raw));
           PLACEHOLDER.lastIndex = 0;
+          out += typeof raw === 'string' && hasPlaceholder ? await sub(raw) : String(raw ?? '');
         }
       }
       last = m.index! + m[0].length;
@@ -1133,7 +1136,7 @@ export async function resolveCase(args: {
 - [ ] **Step 4: Run tests and typecheck**
 
 Run: `npx vitest run tests/core/resolve-case.test.ts && npm run check`
-Expected: PASS. Watch the regex-with-`/g` gotcha: `PLACEHOLDER.test()` advances `lastIndex`; the implementation resets it. If the nested-secret test flakes, that reset is what broke.
+Expected: PASS. The regex-with-`/g` gotcha is load-bearing: `.test()` advances `lastIndex`, and `matchAll` seeds its internal clone from the original's `lastIndex` (ECMA-262 `RegExp.prototype[Symbol.matchAll]`). The reset must therefore happen BEFORE the recursive `sub(raw)` call, exactly as written above; resetting after the ternary leaves the recursion scanning past the end of the string and the nested secret unresolved.
 
 - [ ] **Step 5: Commit**
 
