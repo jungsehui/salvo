@@ -4,6 +4,11 @@ import type { RunResult, SecretResolver, Transport } from '../types';
 import { resolveCase } from '../vars/resolve-case';
 import { evaluateExpect } from '../assert/evaluate-expect';
 
+/**
+ * Runs the selected cases sequentially. Contract: returns exactly one
+ * RunResult per selected (deduped, in-range) case and NEVER throws —
+ * resolver, transport, and assertion failures all become per-case outcomes.
+ */
 export async function runCases(args: {
   file: SalvoFile;
   envName: string;
@@ -23,7 +28,13 @@ export async function runCases(args: {
     if (!kase) continue;
     const base = { caseIndex: i, caseName: kase.name };
 
-    const resolved = await resolveCase({ file, envName, env, caseIndex: i, secrets: deps.secrets });
+    let resolved;
+    try {
+      resolved = await resolveCase({ file, envName, env, caseIndex: i, secrets: deps.secrets });
+    } catch (e) {
+      results.push({ ...base, outcome: 'error', assertions: [], error: e instanceof Error ? e.message : String(e) });
+      continue;
+    }
     if (resolved.kind === 'skipped') {
       results.push({ ...base, outcome: 'skipped', assertions: [], error: resolved.reason });
       continue;

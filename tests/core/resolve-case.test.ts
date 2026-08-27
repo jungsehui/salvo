@@ -66,4 +66,16 @@ describe('resolveCase', () => {
     expect(r.kind).toBe('resolved');
     if (r.kind === 'resolved') expect(r.request.body.query).toContain('{{region}}'); // untouched
   });
+
+  it('reports cyclic variable references as an error instead of overflowing the stack', async () => {
+    const file: SalvoFile = {
+      salvo: 1,
+      request: { url: '{{a}}/g', operation: 'q' },
+      vars: { a: '{{b}}', b: '{{a}}' },
+      cases: [{ name: 'self', vars: { a: '{{a}}' } }],
+    };
+    const r = await resolveCase({ file, envName: 't', env: undefined, caseIndex: 0, secrets });
+    expect(r.kind).toBe('error');
+    if (r.kind === 'error') expect(r.message).toContain('cyclic variable references');
+  });
 });

@@ -27,6 +27,7 @@ export function evaluateExpect(expect: Expect | undefined, response: HttpRespons
   }
 
   const status = expect?.status ?? '2xx';
+  // Status goes last so content assertions surface first in results.
   out.push(statusAssertion(status, response.status));
 
   return out;

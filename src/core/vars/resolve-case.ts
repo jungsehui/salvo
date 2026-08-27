@@ -28,8 +28,9 @@ export async function resolveCase(args: {
   const scope: Record<string, Primitive> = { ...(env?.vars ?? {}), ...(file.vars ?? {}), ...(kase.vars ?? {}) };
   const missingVars = new Set<string>();
   const missingSecrets = new Set<string>();
+  const cyclicVars = new Set<string>();
 
-  const sub = async (input: string): Promise<string> => {
+  const sub = async (input: string, resolving: Set<string>): Promise<string> => {
     let out = '';
     let last = 0;
     for (const m of input.matchAll(PLACEHOLDER)) {
@@ -44,16 +45,21 @@ export async function resolveCase(args: {
         // A var's *value* may itself be a secret reference (one nesting level, e.g. token: "{{secret:T}}").
         if (raw === undefined) {
           missingVars.add(name!);
+        } else if (resolving.has(name!)) {
+          // A variable whose value leads back to itself would recurse forever.
+          cyclicVars.add(name!);
         } else {
-          let resolved: string;
-          if (typeof raw === 'string') {
-            const hasPlaceholder = PLACEHOLDER.test(raw);
-            PLACEHOLDER.lastIndex = 0;
-            resolved = hasPlaceholder ? await sub(raw) : String(raw);
+          // Reset lastIndex BEFORE recursing: matchAll seeds its clone from the
+          // original regex's lastIndex, so a stale offset would skip the match.
+          const hasPlaceholder = PLACEHOLDER.test(String(raw));
+          PLACEHOLDER.lastIndex = 0;
+          if (typeof raw === 'string' && hasPlaceholder) {
+            resolving.add(name!);
+            out += await sub(raw, resolving);
+            resolving.delete(name!);
           } else {
-            resolved = String(raw ?? '');
+            out += String(raw ?? '');
           }
-          out += resolved;
         }
       }
       last = m.index! + m[0].length;
@@ -61,25 +67,26 @@ export async function resolveCase(args: {
     return out + input.slice(last);
   };
 
-  const url = await sub(file.request.url);
+  const url = await sub(file.request.url, new Set());
 
   const headers: Record<string, string> = {};
   for (const [k, v] of Object.entries({ ...(env?.headers ?? {}), ...(file.request.headers ?? {}) })) {
-    headers[k.toLowerCase()] = await sub(v);
+    headers[k.toLowerCase()] = await sub(v, new Set());
   }
 
   let variables: Record<string, unknown> | undefined;
   if (file.request.variables) {
     variables = {};
     for (const [k, v] of Object.entries(file.request.variables)) {
-      variables[k] = typeof v === 'string' ? await sub(v) : v;
+      variables[k] = typeof v === 'string' ? await sub(v, new Set()) : v;
     }
   }
 
-  if (missingSecrets.size > 0 || missingVars.size > 0) {
+  if (missingSecrets.size > 0 || missingVars.size > 0 || cyclicVars.size > 0) {
     const parts: string[] = [];
     if (missingSecrets.size) parts.push(`missing secrets: ${[...missingSecrets].join(', ')}`);
     if (missingVars.size) parts.push(`undefined variables: ${[...missingVars].join(', ')}`);
+    if (cyclicVars.size) parts.push(`cyclic variable references: ${[...cyclicVars].join(', ')}`);
     return { kind: 'error', message: `Cannot resolve case "${kase.name}": ${parts.join('; ')}.`, missing: [...missingSecrets] };
   }
 

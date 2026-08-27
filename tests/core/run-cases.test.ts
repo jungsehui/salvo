@@ -64,4 +64,16 @@ describe('runCases', () => {
     await runCases({ file, envName: 'dev', manifest, selected: 'all', deps: { ...deps, send } });
     expect(seen).toEqual(['http://dev.test/g']);
   });
+
+  it('never throws: a rejecting secret resolver becomes a per-case error outcome', async () => {
+    const file: SalvoFile = {
+      salvo: 1,
+      request: { url: 'http://x.test', headers: { auth: '{{secret:T}}' }, operation: 'q' },
+      cases: [{ name: 'a' }, { name: 'b' }],
+    };
+    const rejecting = async () => { throw new Error('SecretStorage unavailable'); };
+    const results = await runCases({ file, envName: 'test', manifest: undefined, selected: 'all', deps: { secrets: rejecting, send: fakeSend } });
+    expect(results.map((r) => r.outcome)).toEqual(['error', 'error']);
+    expect(results[0]?.error).toContain('SecretStorage unavailable');
+  });
 });

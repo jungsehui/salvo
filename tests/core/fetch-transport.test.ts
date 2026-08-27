@@ -23,7 +23,7 @@ beforeAll(async () => {
       res.writeHead(502, { 'Content-Type': 'text/html' });
       res.end('<html>bad gateway</html>');
     } else if (req.url === '/slow') {
-      setTimeout(() => { res.writeHead(200); res.end('{}'); }, 5_000);
+      setTimeout(() => { res.writeHead(200); res.end('{}'); }, 5_000).unref();
     }
   });
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
