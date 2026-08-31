@@ -4,14 +4,36 @@
   "description": "A file-first API client for VS Code: one request, many named cases",
   "version": "0.1.0",
   "license": "MIT",
+  "publisher": "jungsehui",
   "repository": {
     "type": "git",
     "url": "https://github.com/jungsehui/salvo"
   },
+  "main": "./dist/extension.js",
   "engines": {
-    "node": ">=20"
+    "node": ">=20",
+    "vscode": "^1.110.0"
+  },
+  "categories": ["Programming Languages", "Testing"],
+  "activationEvents": [
+    "workspaceContains:**/*.salvo",
+    "workspaceContains:**/salvo.yaml"
+  ],
+  "contributes": {
+    "languages": [{ "id": "yaml", "extensions": [".salvo"] }],
+    "yamlValidation": [
+      { "fileMatch": "*.salvo", "url": "./schemas/salvo-file.schema.json" },
+      { "fileMatch": "salvo.yaml", "url": "./schemas/salvo-manifest.schema.json" }
+    ],
+    "commands": [
+      { "command": "salvo.runCases", "title": "Salvo: Run Cases in Current File" },
+      { "command": "salvo.selectEnvironment", "title": "Salvo: Select Environment" },
+      { "command": "salvo.setSecret", "title": "Salvo: Set Secret" },
+      { "command": "salvo.refreshSchema", "title": "Salvo: Refresh Schema" }
+    ]
   },
   "scripts": {
+    "build": "node esbuild.mjs",
     "check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -26,6 +48,9 @@
   },
   "devDependencies": {
     "@types/node": "^20.19.0",
+    "@types/vscode": "^1.110.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.25.12",
     "json-schema-to-typescript": "^15.0.4",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"

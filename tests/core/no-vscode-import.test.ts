@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const CORE_DIR = fileURLToPath(new URL('../../src/core', import.meta.url));
+const GUARDED_DIRS = ['../../src/core', '../../src/host'].map((p) => fileURLToPath(new URL(p, import.meta.url)));
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -13,8 +13,8 @@ function walk(dir: string): string[] {
 }
 
 describe('core purity', () => {
-  it('src/core never imports vscode', () => {
-    const files = walk(CORE_DIR);
+  it('src/core and src/host never import vscode', () => {
+    const files = GUARDED_DIRS.filter((d) => existsSync(d)).flatMap((d) => walk(d));
     expect(files.length).toBeGreaterThan(0); // guard must actually see files
     for (const f of files) {
       const src = readFileSync(f, 'utf8');

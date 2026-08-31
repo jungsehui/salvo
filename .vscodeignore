@@ -1,0 +1,15 @@
+.worktrees/**
+.superpowers/**
+.claude/**
+.github/**
+docs/**
+src/**
+tests/**
+node_modules/**
+out/**
+esbuild.mjs
+vitest.config.ts
+tsconfig.json
+.nvmrc
+*.vsix
+package-lock.json
