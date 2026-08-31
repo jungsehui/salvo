@@ -6,7 +6,7 @@
 
 **Architecture:** Still pure core — zero `vscode` imports (the existing guard test enforces it). `graphql` is lazy-imported inside `loadSchema` (conventions: never on the activation path). Filesystem and network stay injected (`readFile`, `httpPost`), so everything runs under vitest. `graphql-language-service` pure functions (proven by the 2026-08-21 spike: 7 functions, 246KB schema, sub-ms) are wrapped so all positions crossing the module boundary are 1-based FILE line/col; op-relative 0-based positions never leak out.
 
-**Tech Stack:** adds runtime deps `graphql` ^16.9.0 and `graphql-language-service` ^5.5.2 (3 transitive deps, MIT — architecture decision 6). Everything else unchanged.
+**Tech Stack:** adds runtime deps `graphql` (^16.9.0 floor; ^16.14.2 shipped) and `graphql-language-service` (^5.5.2 floor; ^5.7.0 shipped) (3 transitive deps, MIT — architecture decision 6). Everything else unchanged.
 
 **Spec:** `.claude/architecture.md` (decisions 6, 7, 10) and `.claude/roadmap.md` (v0.1 minimum behavior 2–3). Plan 1's interfaces are consumed as shipped: `ParseIssue` (1-based line/col), `SchemaSource` (generated), `Transport`-style injection.
 
@@ -618,7 +618,9 @@ export function locateOperation(fileText: string):
       break;
     }
   }
-  const opLineCount = text.split('\n').length;
+  // A clip-chomped block ('|') ends with '\n'; the split's trailing '' is not a
+  // real operation line and must not make the next YAML line map as one.
+  const opLineCount = text.split('\n').length - (text.endsWith('\n') ? 1 : 0);
 
   return {
     ok: true,
