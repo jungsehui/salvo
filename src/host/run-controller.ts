@@ -1,0 +1,48 @@
+import { parseSalvoFile } from '../core/format/parse-salvo-file';
+import { runCases } from '../core/runner/run-cases';
+import type { SalvoManifest } from '../core/generated/salvo-manifest';
+import type { ParseIssue, RunResult, SecretResolver, Transport } from '../core/types';
+
+export async function runSalvoFile(args: {
+  fileText: string;
+  manifest: SalvoManifest | undefined;
+  envName: string;
+  deps: { secrets: SecretResolver; send: Transport };
+}): Promise<{ ok: false; issues: ParseIssue[] } | { ok: true; results: RunResult[]; report: string }> {
+  const parsed = parseSalvoFile(args.fileText);
+  if (!parsed.ok) return { ok: false, issues: parsed.issues };
+  const results = await runCases({
+    file: parsed.file,
+    envName: args.envName,
+    manifest: args.manifest,
+    selected: 'all',
+    deps: args.deps,
+  });
+  return { ok: true, results, report: formatRunReport(results, args.envName) };
+}
+
+export function formatRunReport(results: RunResult[], envName: string): string {
+  const lines: string[] = [`Salvo run · environment "${envName}" · ${results.length} cases`];
+  let passed = 0;
+  let failed = 0;
+  let skipped = 0;
+  let errors = 0;
+  for (const r of results) {
+    if (r.outcome === 'passed') {
+      passed += 1;
+      lines.push(`  PASS  ${r.caseName} (${r.response?.status ?? '?'}, ${r.response?.durationMs ?? '?'}ms)`);
+    } else if (r.outcome === 'failed') {
+      failed += 1;
+      const first = r.assertions.find((a) => !a.pass);
+      lines.push(`  FAIL  ${r.caseName} — ${first ? `${first.target}: expected ${first.expected}, actual ${first.actual}` : 'assertion failed'}`);
+    } else if (r.outcome === 'skipped') {
+      skipped += 1;
+      lines.push(`  SKIP  ${r.caseName} — ${r.error ?? 'skipped'}`);
+    } else {
+      errors += 1;
+      lines.push(`  ERROR ${r.caseName} — ${r.error ?? 'unknown error'}`);
+    }
+  }
+  lines.push(`${passed} passed, ${failed} failed, ${skipped} skipped, ${errors} error${errors === 1 ? '' : 's'}`);
+  return lines.join('\n');
+}
