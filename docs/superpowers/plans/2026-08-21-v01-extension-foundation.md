@@ -809,6 +809,7 @@ interface ProjectContext {
   located?: LocatedManifest;
   schema?: GraphQLSchema;
   schemaIssues?: ParseIssue[];
+  schemaLoading?: Promise<void>;
   warned?: boolean;
 }
 
@@ -864,31 +865,50 @@ export function activate(context: vscode.ExtensionContext): void {
 
     const src = located.found?.manifest.schema;
     if (src && ctx.schema === undefined && ctx.schemaIssues === undefined) {
-      const base = located.found!.dir;
-      const abs = (p: string): string => (p.startsWith('/') ? p : `${base}/${p}`);
-      const loaded = await loadSchema({
-        source: {
-          ...src,
-          ...(src.sdl !== undefined ? { sdl: abs(src.sdl) } : {}),
-          ...(src.introspection !== undefined ? { introspection: abs(src.introspection) } : {}),
-        },
-        readFile: async (p) => {
-          const text = await fsLike.readFile(p);
-          if (text === undefined) throw new Error('file not found');
-          return text;
-        },
-        httpPost: async (url, headers, body) => {
-          const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-          return await res.text();
-        },
-      });
-      if (loaded.ok) {
-        ctx.schema = loaded.schema;
-      } else {
-        ctx.schemaIssues = loaded.issues;
-        // Coordinate rule: schema-source problems name their own file; warn, don't squiggle.
-        warnOnce(ctx, `schema failed to load — ${loaded.issues[0]?.message ?? 'unknown error'}`);
+      // Single flight: concurrent callers (diagnostics, completion, status bar)
+      // share one load; a second racing load could double-fetch and even warn
+      // AFTER a successful load had already landed.
+      if (!ctx.schemaLoading) {
+        const base = located.found!.dir;
+        const abs = (p: string): string => (p.startsWith('/') ? p : `${base}/${p}`);
+        ctx.schemaLoading = (async () => {
+          const loaded = await loadSchema({
+            source: {
+              ...src,
+              ...(src.sdl !== undefined ? { sdl: abs(src.sdl) } : {}),
+              ...(src.introspection !== undefined ? { introspection: abs(src.introspection) } : {}),
+            },
+            readFile: async (p) => {
+              const text = await fsLike.readFile(p);
+              if (text === undefined) throw new Error('file not found');
+              return text;
+            },
+            httpPost: async (url, headers, body) => {
+              // Same abort pattern as the run transport: an unresponsive
+              // introspection endpoint must not hang commands forever.
+              const controller = new AbortController();
+              const timer = setTimeout(() => controller.abort(), 30_000);
+              try {
+                const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: controller.signal });
+                return await res.text();
+              } catch (e) {
+                if (controller.signal.aborted) throw new Error('Introspection request timed out after 30000ms.');
+                throw e;
+              } finally {
+                clearTimeout(timer);
+              }
+            },
+          });
+          if (loaded.ok) {
+            ctx.schema = loaded.schema;
+          } else {
+            ctx.schemaIssues = loaded.issues;
+            // Coordinate rule: schema-source problems name their own file; warn, don't squiggle.
+            warnOnce(ctx, `schema failed to load — ${loaded.issues[0]?.message ?? 'unknown error'}`);
+          }
+        })();
       }
+      await ctx.schemaLoading;
     }
     return { key, ctx };
   }
@@ -952,7 +972,12 @@ export function activate(context: vscode.ExtensionContext): void {
     status,
     vscode.workspace.onDidOpenTextDocument(scheduleRefresh),
     vscode.workspace.onDidChangeTextDocument((e) => scheduleRefresh(e.document)),
-    vscode.workspace.onDidCloseTextDocument((doc) => diagnostics.delete(doc.uri)),
+    vscode.workspace.onDidCloseTextDocument((doc) => {
+      const key = doc.uri.toString();
+      clearTimeout(timers.get(key));
+      timers.delete(key);
+      diagnostics.delete(doc.uri);
+    }),
     vscode.window.onDidChangeActiveTextEditor((e) => void updateStatus(e ?? undefined)),
 
     vscode.languages.registerCompletionItemProvider(SELECTOR, {
@@ -1069,8 +1094,7 @@ export function deactivate(): void {}
       "name": "Run Extension",
       "type": "extensionHost",
       "request": "launch",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}", "${workspaceFolder}/examples/quickstart"],
-      "preLaunchTask": null
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}", "${workspaceFolder}/examples/quickstart"]
     }
   ]
 }
