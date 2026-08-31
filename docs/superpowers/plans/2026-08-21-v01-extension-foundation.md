@@ -1167,7 +1167,7 @@ In `vitest.config.ts`, change the include so vitest never grabs the mocha files:
 ```ts
   test: { include: ['tests/core/**/*.test.ts', 'tests/host/**/*.test.ts'], environment: 'node' },
 ```
-Also append `out-test/**` and `dist/**` to `.vscodeignore`, add lines `out-test/` and `dist/` to `.gitignore`, and add to the ROOT `tsconfig.json`:
+Also append `out-test/**`, `tsconfig.test.json`, and `.vscode-test.mjs` to `.vscodeignore` (NEVER `dist/**` — it is the packaged entrypoint), add lines `out-test/` and `dist/` to `.gitignore`, and add to the ROOT `tsconfig.json`:
 ```json
   "exclude": ["tests/vscode", "out", "out-test", "dist"]
 ```
