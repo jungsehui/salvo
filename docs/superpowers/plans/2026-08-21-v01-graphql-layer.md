@@ -450,7 +450,7 @@ git commit -m "feat: schema loader for SDL, introspection JSON, and opt-in url s
 
 ### Task 3: Operation source and position mapping (`operation-source`)
 
-The bridge every language feature stands on: extract the GraphQL operation from a `.salvo` file and translate positions in BOTH directions. Block scalars (`operation: |`) get precise line-by-line mapping; any other scalar style gets a documented degenerate mapping anchored at the scalar.
+The bridge every language feature stands on: extract the GraphQL operation from a `.salvo` file and translate positions in BOTH directions. Non-empty literal block scalars (`operation: |`) get precise line-by-line mapping; folded (`>`), single-line, and empty blocks get a documented degenerate mapping anchored at the scalar (folding joins lines; an empty block has no content to map).
 
 **Files:**
 - Create: `src/core/lang/operation-source.ts`
@@ -532,6 +532,21 @@ describe('locateOperation', () => {
     }
   });
 
+  it('degrades folded scalars (>) to anchor-only mapping because folding joins lines', () => {
+    const r = locateOperation('salvo: 1\nrequest:\n  url: x\n  operation: >\n    query {\n    ok }\n');
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.source.fromFilePosition({ line: 5, col: 5 })).toBeUndefined();
+  });
+
+  it('degrades an empty block operation instead of borrowing sibling indentation', () => {
+    const r = locateOperation('salvo: 1\nrequest:\n  url: x\n  operation: |\n  timeout: 5000\n');
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.source.text.trim()).toBe('');
+      expect(r.source.fromFilePosition({ line: 5, col: 3 })).toBeUndefined();
+    }
+  });
+
   it('fails with a reason when the operation is missing or the YAML is broken', () => {
     const missing = locateOperation('salvo: 1\nrequest:\n  url: x\n');
     expect(missing.ok).toBe(false);
@@ -572,9 +587,14 @@ export function locateOperation(fileText: string):
   }
   const text = node.value;
 
-  if (node.type !== Scalar.BLOCK_LITERAL && node.type !== Scalar.BLOCK_FOLDED) {
-    // Single-line styles cannot be mapped token-by-token after YAML unescaping;
-    // anchor everything at the scalar and refuse inverse mapping.
+  if (node.type !== Scalar.BLOCK_LITERAL || text.trim().length === 0) {
+    // Only a non-empty literal block ('|') preserves line structure. Folded
+    // blocks ('>') join lines, and single-line styles unescape - both lose the
+    // correspondence - while an empty block would borrow indentation from
+    // whatever sibling line follows it. Anchor those at the scalar and refuse
+    // inverse mapping.
+    // (yaml populates range for every node parsed without errors; the
+    // doc.errors guard above makes the assertion safe.)
     const at = lc.linePos(node.range![0]);
     const anchor = { line: at.line, col: at.col };
     return {
@@ -588,6 +608,8 @@ export function locateOperation(fileText: string):
   const headerLine = lc.linePos(node.range![0]).line;   // 1-based
   const contentStartLine = headerLine + 1;               // file line of op line 0
   const fileLines = fileText.split('\n');
+  // Relies on YAML auto-detected indentation: the first non-blank content line
+  // sets the block's floor, so scanning to it cannot overshoot the block.
   let indent = 0;
   for (let l = contentStartLine - 1; l < fileLines.length; l += 1) {
     const lineText = fileLines[l]!;
