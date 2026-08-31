@@ -18,5 +18,5 @@ export default defineConfig({
   resolve: {
     alias: { graphql: graphqlCjsEntry },
   },
-  test: { include: ['tests/**/*.test.ts'], environment: 'node' },
+  test: { include: ['tests/core/**/*.test.ts', 'tests/host/**/*.test.ts'], environment: 'node' },
 });
