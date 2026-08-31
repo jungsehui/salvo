@@ -21,3 +21,5 @@ CLAUDE.md
 out-test/**
 tsconfig.test.json
 .vscode-test.mjs
+.vscode/**
+.gitignore
