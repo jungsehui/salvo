@@ -51,7 +51,9 @@ export function locateOperation(fileText: string):
       break;
     }
   }
-  const opLineCount = text.split('\n').length;
+  // A clip-chomped block ('|') ends with '\n'; the split's trailing '' is not a
+  // real operation line and must not make the next YAML line map as one.
+  const opLineCount = text.split('\n').length - (text.endsWith('\n') ? 1 : 0);
 
   return {
     ok: true,

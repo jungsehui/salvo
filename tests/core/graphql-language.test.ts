@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { buildSchema } from 'graphql';
+import { buildClientSchema, buildSchema, introspectionFromSchema } from 'graphql';
 import { locateOperation } from '../../src/core/lang/operation-source';
 import {
   getCompletionsAt,
@@ -76,5 +76,23 @@ describe('graphql-language', () => {
 
   it('returns undefined variables schema for an unparsable operation', () => {
     expect(getVariablesJsonSchemaFor(schema, 'query {{{')).toBeUndefined();
+  });
+
+  it('maps diagnostics of an anchor-only source to the scalar anchor', () => {
+    const r = locateOperation('salvo: 1\nrequest:\n  url: x\n  operation: "query { nope }"\n');
+    if (!r.ok) throw new Error(r.reason);
+    const issues = getOperationDiagnostics(schema, r.source);
+    expect(issues.length).toBeGreaterThan(0);
+    expect(issues[0]?.line).toBe(4);
+    expect(issues[0]?.message).toContain('nope');
+  });
+
+  it('works identically with a schema built from introspection JSON', () => {
+    const clientSchema = buildClientSchema(introspectionFromSchema(schema));
+    const good = locateOperation(DOC.replace('nope', 'id'));
+    if (!good.ok) throw new Error(good.reason);
+    expect(getOperationDiagnostics(clientSchema, good.source)).toEqual([]);
+    const labels = getCompletionsAt(clientSchema, op, { line: 6, col: 12 }).map((i) => i.label);
+    expect(labels).toContain('id');
   });
 });

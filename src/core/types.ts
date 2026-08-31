@@ -45,6 +45,12 @@ export interface RunResult {
 export type SecretResolver = (name: string) => Promise<string | undefined>;
 export type Transport = (req: ResolvedRequest) => Promise<HttpResponse>;
 
+/**
+ * A positioned problem report. `line`/`col` are 1-based positions in the
+ * document the issue is ABOUT: for parse and language issues that is the
+ * `.salvo` file; for schema-load issues it is the schema source file (SDL or
+ * introspection JSON) named in the message — never the `.salvo` file.
+ */
 export interface ParseIssue {
   message: string;  // English
   line: number;     // 1-based

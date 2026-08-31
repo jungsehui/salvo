@@ -4,6 +4,10 @@ import type { GraphQLSchema } from 'graphql';
 
 export type HttpPost = (url: string, headers: Record<string, string>, body: unknown) => Promise<string>;
 
+/**
+ * Issue positions are relative to the schema SOURCE named in the message
+ * (the SDL or introspection file, or the url), NOT the `.salvo` file.
+ */
 export type LoadSchemaResult =
   | { ok: true; schema: GraphQLSchema }
   | { ok: false; issues: ParseIssue[] };

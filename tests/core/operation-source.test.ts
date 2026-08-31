@@ -75,4 +75,10 @@ describe('locateOperation', () => {
     const broken = locateOperation('request: [unclosed');
     expect(broken.ok).toBe(false);
   });
+
+  it('does not treat the line after the block as part of the operation', () => {
+    const r = locateOperation(DOC);
+    if (!r.ok) throw new Error(r.reason);
+    expect(r.source.fromFilePosition({ line: 8, col: 5 })).toBeUndefined();
+  });
 });
