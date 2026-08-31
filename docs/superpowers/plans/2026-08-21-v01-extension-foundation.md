@@ -362,6 +362,12 @@ describe('locateManifest', () => {
     expect(r).toEqual({ ok: true, found: undefined });
   });
 
+  it('finds a manifest at the filesystem root without a double slash', async () => {
+    const fs = fsOf({ '/salvo.yaml': MANIFEST });
+    const r = await locateManifest(fs, '/', '/');
+    expect(r.ok && r.found?.path).toBe('/salvo.yaml');
+  });
+
   it('surfaces a broken manifest as issues with the path in the message', async () => {
     const fs = fsOf({ '/w/salvo.yaml': 'salvo: 1\n' });
     const r = await locateManifest(fs, '/w', '/w');
@@ -378,6 +384,9 @@ describe('pickEnvironment', () => {
   it('falls back to the first defined environment', () => {
     expect(pickEnvironment(manifest, 'gone')).toBe('dev');
     expect(pickEnvironment(manifest, undefined)).toBe('dev');
+  });
+  it('ignores prototype-chain names as saved environments', () => {
+    expect(pickEnvironment(manifest, 'constructor')).toBe('dev');
   });
   it('returns undefined without a manifest or environments', () => {
     expect(pickEnvironment(undefined, 'dev')).toBeUndefined();
@@ -420,7 +429,7 @@ export async function locateManifest(
   const stop = trimSlash(stopDir);
   let dir = trimSlash(fileDir);
   for (;;) {
-    const path = `${dir}/salvo.yaml`;
+    const path = dir === '/' ? '/salvo.yaml' : `${dir}/salvo.yaml`;
     const text = await fs.readFile(path);
     if (text !== undefined) {
       const parsed = parseManifest(text);
@@ -441,7 +450,8 @@ export function pickEnvironment(manifest: SalvoManifest | undefined, saved: stri
   if (!envs) return undefined;
   const names = Object.keys(envs);
   if (names.length === 0) return undefined;
-  return saved !== undefined && saved in envs ? saved : names[0];
+  // Object.hasOwn: 'constructor' etc. must not count as a defined environment.
+  return saved !== undefined && Object.hasOwn(envs, saved) ? saved : names[0];
 }
 ```
 
