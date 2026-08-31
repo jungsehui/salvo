@@ -54,6 +54,21 @@ describe('locateOperation', () => {
     }
   });
 
+  it('degrades folded scalars (>) to anchor-only mapping because folding joins lines', () => {
+    const r = locateOperation('salvo: 1\nrequest:\n  url: x\n  operation: >\n    query {\n    ok }\n');
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.source.fromFilePosition({ line: 5, col: 5 })).toBeUndefined();
+  });
+
+  it('degrades an empty block operation instead of borrowing sibling indentation', () => {
+    const r = locateOperation('salvo: 1\nrequest:\n  url: x\n  operation: |\n  timeout: 5000\n');
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.source.text.trim()).toBe('');
+      expect(r.source.fromFilePosition({ line: 5, col: 3 })).toBeUndefined();
+    }
+  });
+
   it('fails with a reason when the operation is missing or the YAML is broken', () => {
     const missing = locateOperation('salvo: 1\nrequest:\n  url: x\n');
     expect(missing.ok).toBe(false);

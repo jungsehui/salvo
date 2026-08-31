@@ -20,9 +20,14 @@ export function locateOperation(fileText: string):
   }
   const text = node.value;
 
-  if (node.type !== Scalar.BLOCK_LITERAL && node.type !== Scalar.BLOCK_FOLDED) {
-    // Single-line styles cannot be mapped token-by-token after YAML unescaping;
-    // anchor everything at the scalar and refuse inverse mapping.
+  if (node.type !== Scalar.BLOCK_LITERAL || text.trim().length === 0) {
+    // Only a non-empty literal block ('|') preserves line structure. Folded
+    // blocks ('>') join lines, and single-line styles unescape - both lose the
+    // correspondence - while an empty block would borrow indentation from
+    // whatever sibling line follows it. Anchor those at the scalar and refuse
+    // inverse mapping.
+    // (yaml populates range for every node parsed without errors; the
+    // doc.errors guard above makes the assertion safe.)
     const at = lc.linePos(node.range![0]);
     const anchor = { line: at.line, col: at.col };
     return {
@@ -36,6 +41,8 @@ export function locateOperation(fileText: string):
   const headerLine = lc.linePos(node.range![0]).line;   // 1-based
   const contentStartLine = headerLine + 1;               // file line of op line 0
   const fileLines = fileText.split('\n');
+  // Relies on YAML auto-detected indentation: the first non-blank content line
+  // sets the block's floor, so scanning to it cannot overshoot the block.
   let indent = 0;
   for (let l = contentStartLine - 1; l < fileLines.length; l += 1) {
     const lineText = fileLines[l]!;
