@@ -19,3 +19,5 @@ CLAUDE.md
 .omc/**
 .claude/local/**
 out-test/**
+tsconfig.test.json
+.vscode-test.mjs
