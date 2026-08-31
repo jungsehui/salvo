@@ -32,6 +32,12 @@ describe('locateManifest', () => {
     expect(r).toEqual({ ok: true, found: undefined });
   });
 
+  it('finds a manifest at the filesystem root without a double slash', async () => {
+    const fs = fsOf({ '/salvo.yaml': MANIFEST });
+    const r = await locateManifest(fs, '/', '/');
+    expect(r.ok && r.found?.path).toBe('/salvo.yaml');
+  });
+
   it('surfaces a broken manifest as issues with the path in the message', async () => {
     const fs = fsOf({ '/w/salvo.yaml': 'salvo: 1\n' });
     const r = await locateManifest(fs, '/w', '/w');
@@ -48,6 +54,9 @@ describe('pickEnvironment', () => {
   it('falls back to the first defined environment', () => {
     expect(pickEnvironment(manifest, 'gone')).toBe('dev');
     expect(pickEnvironment(manifest, undefined)).toBe('dev');
+  });
+  it('ignores prototype-chain names as saved environments', () => {
+    expect(pickEnvironment(manifest, 'constructor')).toBe('dev');
   });
   it('returns undefined without a manifest or environments', () => {
     expect(pickEnvironment(undefined, 'dev')).toBeUndefined();

@@ -23,7 +23,7 @@ export async function locateManifest(
   const stop = trimSlash(stopDir);
   let dir = trimSlash(fileDir);
   for (;;) {
-    const path = `${dir}/salvo.yaml`;
+    const path = dir === '/' ? '/salvo.yaml' : `${dir}/salvo.yaml`;
     const text = await fs.readFile(path);
     if (text !== undefined) {
       const parsed = parseManifest(text);
@@ -44,5 +44,6 @@ export function pickEnvironment(manifest: SalvoManifest | undefined, saved: stri
   if (!envs) return undefined;
   const names = Object.keys(envs);
   if (names.length === 0) return undefined;
-  return saved !== undefined && saved in envs ? saved : names[0];
+  // Object.hasOwn: 'constructor' etc. must not count as a defined environment.
+  return saved !== undefined && Object.hasOwn(envs, saved) ? saved : names[0];
 }
