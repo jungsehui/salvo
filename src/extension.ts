@@ -147,6 +147,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const { ctx } = await getProject(doc);
     const { collectDiagnostics } = await lang();
     const issues = collectDiagnostics(doc.getText(), ctx.schema);
+    if (doc.isClosed) return; // the doc may have closed while the schema loaded
     diagnostics.set(doc.uri, issues.map(toDiagnostic(doc)));
   }
 
@@ -164,6 +165,7 @@ export function activate(context: vscode.ExtensionContext): void {
       return;
     }
     const { ctx } = await getProject(doc);
+    if (vscode.window.activeTextEditor !== editor) return; // switched away during the load
     status.text = `Salvo: ${envFor(ctx) ?? 'no environment'}`;
     status.show();
   }

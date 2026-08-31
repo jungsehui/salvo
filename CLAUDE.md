@@ -10,7 +10,9 @@ multiple named **cases** (valid token / expired / forbidden / none) that run as
 one salvo and assert declaratively. GraphQL is a first-class citizen and works
 against servers with introspection **disabled**, by reading a local SDL file.
 
-- **Status**: planning only. No code yet. Plan written 2026-08-21.
+- **Status**: v0.1 foundation implemented (plans 1-3a merged: core, GraphQL
+  layer, extension foundation; 102 tests, electron smoke, packaged vsix).
+  Next: plan 3b (custom editor GUI).
 - **Marketplace ID**: `jungsehui.salvo` (publisher fixed, do not rename).
 - **License**: MIT.
 - **Target**: `engines.vscode`는 사용 API의 최소 버전으로 착수 시 확정

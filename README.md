@@ -2,9 +2,13 @@
 
 A file-first API client for VS Code where **one request carries many named cases**.
 
-> **Status: design phase. No code yet.**
-> The architecture is settled and two spikes are measured. Implementation has not started.
-> See [`.claude/roadmap.md`](.claude/roadmap.md) for what v0.1 will and will not contain.
+> **Status: early alpha — the v0.1 foundation is implemented and tested.**
+> The core engine, the GraphQL layer, and the extension foundation are in:
+> `.salvo` files get GraphQL diagnostics, completions, and hover in the text
+> editor, with environments, secrets, and case runs from the command palette.
+> The visual request editor is the next milestone. See the
+> [roadmap](https://github.com/jungsehui/salvo/blob/main/.claude/roadmap.md)
+> for what v0.1 will and will not contain.
 
 ## The problem
 
@@ -110,7 +114,7 @@ Saying no is part of the design. Each of these is a deliberate exclusion with a 
 | Network calls run in | The extension host, never the webview (CORS applies to `vscode-webview://` origins; the host also inherits VS Code's proxy support automatically) |
 | Editor surface | `CustomTextEditorProvider` with `priority: "option"`, so VS Code handles dirty state, save, undo, and hot exit, and the raw text stays one click away |
 
-Full write-up in [`.claude/architecture.md`](.claude/architecture.md).
+Full write-up in [`.claude/architecture.md`](https://github.com/jungsehui/salvo/blob/main/.claude/architecture.md).
 
 ## Roadmap
 
