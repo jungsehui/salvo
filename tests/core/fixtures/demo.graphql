@@ -1,0 +1,16 @@
+type Query {
+  me: User
+  user(id: ID!): User
+  items(first: Int): [Item!]!
+}
+
+type User {
+  id: ID!
+  name: String
+  friends: [User!]
+}
+
+type Item {
+  id: ID!
+  label: String
+}
