@@ -13,13 +13,17 @@ function walk(dir: string): string[] {
 }
 
 describe('core purity', () => {
-  it('src/core and src/host never import vscode', () => {
-    const files = GUARDED_DIRS.filter((d) => existsSync(d)).flatMap((d) => walk(d));
-    expect(files.length).toBeGreaterThan(0); // guard must actually see files
-    for (const f of files) {
-      const src = readFileSync(f, 'utf8');
-      // Any 'vscode' module string: static/side-effect/dynamic import and require alike.
-      expect(src, `${f} references the vscode module`).not.toMatch(/['"]vscode['"]/);
+  it('src/core and src/host never reference the vscode module', () => {
+    const dirs = GUARDED_DIRS.filter((d) => existsSync(d));
+    expect(dirs.length).toBeGreaterThan(0);
+    for (const dir of dirs) {
+      const files = walk(dir);
+      expect(files.length, `${dir} has no files to scan`).toBeGreaterThan(0);
+      for (const f of files) {
+        const src = readFileSync(f, 'utf8');
+        // Any 'vscode' module string: static/side-effect/dynamic import and require alike.
+        expect(src, `${f} references the vscode module`).not.toMatch(/['"]vscode['"]/);
+      }
     }
   });
 });

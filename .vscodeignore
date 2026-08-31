@@ -13,3 +13,8 @@ tsconfig.json
 .nvmrc
 *.vsix
 package-lock.json
+CLAUDE.md
+.idea/**
+.planning/**
+.omc/**
+.claude/local/**

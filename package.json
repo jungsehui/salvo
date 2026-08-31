@@ -14,22 +14,50 @@
     "node": ">=20",
     "vscode": "^1.110.0"
   },
-  "categories": ["Programming Languages", "Testing"],
+  "categories": [
+    "Programming Languages",
+    "Testing"
+  ],
   "activationEvents": [
     "workspaceContains:**/*.salvo",
     "workspaceContains:**/salvo.yaml"
   ],
   "contributes": {
-    "languages": [{ "id": "yaml", "extensions": [".salvo"] }],
+    "languages": [
+      {
+        "id": "yaml",
+        "extensions": [
+          ".salvo"
+        ]
+      }
+    ],
     "yamlValidation": [
-      { "fileMatch": "*.salvo", "url": "./schemas/salvo-file.schema.json" },
-      { "fileMatch": "salvo.yaml", "url": "./schemas/salvo-manifest.schema.json" }
+      {
+        "fileMatch": "*.salvo",
+        "url": "./schemas/salvo-file.schema.json"
+      },
+      {
+        "fileMatch": "salvo.yaml",
+        "url": "./schemas/salvo-manifest.schema.json"
+      }
     ],
     "commands": [
-      { "command": "salvo.runCases", "title": "Salvo: Run Cases in Current File" },
-      { "command": "salvo.selectEnvironment", "title": "Salvo: Select Environment" },
-      { "command": "salvo.setSecret", "title": "Salvo: Set Secret" },
-      { "command": "salvo.refreshSchema", "title": "Salvo: Refresh Schema" }
+      {
+        "command": "salvo.runCases",
+        "title": "Salvo: Run Cases in Current File"
+      },
+      {
+        "command": "salvo.selectEnvironment",
+        "title": "Salvo: Select Environment"
+      },
+      {
+        "command": "salvo.setSecret",
+        "title": "Salvo: Set Secret"
+      },
+      {
+        "command": "salvo.refreshSchema",
+        "title": "Salvo: Refresh Schema"
+      }
     ]
   },
   "scripts": {
@@ -48,7 +76,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.19.0",
-    "@types/vscode": "^1.110.0",
+    "@types/vscode": "1.110.0",
     "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.25.12",
     "json-schema-to-typescript": "^15.0.4",
