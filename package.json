@@ -1,6 +1,7 @@
 {
   "name": "salvo",
   "displayName": "Salvo",
+  "icon": "media/icon.png",
   "description": "A file-first API client for VS Code: one request, many named cases",
   "version": "0.1.0",
   "license": "MIT",
