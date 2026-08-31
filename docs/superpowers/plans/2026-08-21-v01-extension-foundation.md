@@ -81,8 +81,8 @@ Merge these fields into the existing `package.json` (keep everything already the
 ```
 
 Add scripts: `"build": "node esbuild.mjs"`. Add devDeps via:
-Run: `npm install -D @types/vscode@1.110.0 esbuild@^0.25.0 @vscode/vsce@^3.6.0 --no-audit --no-fund`
-(`@types/vscode` pinned exact — its major.minor IS the API floor; a caret bump would silently raise the floor.)
+Run: `npm install -D esbuild@^0.25.0 @vscode/vsce@^3.6.0 --no-audit --no-fund && npm install -D --save-exact @types/vscode@1.110.0 --no-audit --no-fund`
+(`@types/vscode` pinned exact via `--save-exact` — npm's default save-prefix would silently add a caret, and its major.minor IS the API floor. Verify `package.json` shows `"@types/vscode": "1.110.0"` with no `^`.)
 
 - [ ] **Step 2: Write esbuild.mjs**
 
@@ -123,6 +123,11 @@ tsconfig.json
 .nvmrc
 *.vsix
 package-lock.json
+CLAUDE.md
+.idea/**
+.planning/**
+.omc/**
+.claude/local/**
 ```
 
 - [ ] **Step 4: Replace src/extension.ts stub with activation stubs**
@@ -144,8 +149,24 @@ In `tests/core/no-vscode-import.test.ts`, change the constant and the test name 
 const GUARDED_DIRS = ['../../src/core', '../../src/host'].map((p) => fileURLToPath(new URL(p, import.meta.url)));
 ```
 
-and iterate: `const files = GUARDED_DIRS.filter((d) => existsSync(d)).flatMap((d) => walk(d));` (add `existsSync` to the `node:fs` import). Keep the `files.length > 0` guard. Update the assertion message to `references the vscode module`.
-(`src/host` does not exist until Task 2 — `existsSync` keeps the guard honest today and automatic tomorrow.)
+and make the check PER DIRECTORY, so one populated dir can never mask another going missing:
+
+```ts
+  it('src/core and src/host never reference the vscode module', () => {
+    const dirs = GUARDED_DIRS.filter((d) => existsSync(d));
+    expect(dirs.length).toBeGreaterThan(0);
+    for (const dir of dirs) {
+      const files = walk(dir);
+      expect(files.length, `${dir} has no files to scan`).toBeGreaterThan(0);
+      for (const f of files) {
+        const src = readFileSync(f, 'utf8');
+        // Any 'vscode' module string: static/side-effect/dynamic import and require alike.
+        expect(src, `${f} references the vscode module`).not.toMatch(/['"]vscode['"]/);
+      }
+    }
+  });
+```
+(add `existsSync` to the `node:fs` import; `src/host` does not exist until Task 2 — `existsSync` keeps the guard honest today and automatic tomorrow.)
 
 - [ ] **Step 6: Verify**
 
