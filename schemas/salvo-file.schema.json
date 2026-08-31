@@ -17,7 +17,7 @@
         "headers": { "type": "object", "additionalProperties": { "type": "string" } },
         "operation": { "type": "string", "description": "GraphQL document. No {{}} substitution here; use GraphQL variables." },
         "operationName": { "type": "string" },
-        "variables": { "type": "object", "description": "GraphQL variables. String values may contain {{var}} placeholders." },
+        "variables": { "type": "object", "description": "GraphQL variables. Top-level string values may contain {{var}} placeholders; strings nested inside objects or arrays pass through untouched." },
         "timeoutMs": { "type": "integer", "minimum": 1, "default": 30000 }
       }
     },

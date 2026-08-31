@@ -7,6 +7,11 @@ import fileSchema from '../../../schemas/salvo-file.schema.json';
 const ajv = new Ajv({ allErrors: true, allowUnionTypes: true });
 const validate = ajv.compile<SalvoFile>(fileSchema as object);
 
+/** RFC 6901: '~1' -> '/', then '~0' -> '~'. */
+function decodePointerSegment(seg: string): string {
+  return seg.replace(/~1/g, '/').replace(/~0/g, '~');
+}
+
 export type ParseFileResult =
   | { ok: true; file: SalvoFile; issues: ParseIssue[] }
   | { ok: false; issues: ParseIssue[] };
@@ -61,11 +66,14 @@ export function parseSalvoFile(text: string): ParseFileResult {
 }
 
 function formatAjvError(err: ErrorObject): string {
-  return `${err.instancePath || '/'} ${err.message ?? 'is invalid'}`;
+  const path = err.instancePath
+    ? '/' + err.instancePath.split('/').filter(Boolean).map(decodePointerSegment).join('/')
+    : '/';
+  return `${path} ${err.message ?? 'is invalid'}`;
 }
 
 function nodePos(doc: ReturnType<typeof parseDocument>, lc: LineCounter, instancePath: string): { line: number; col: number } {
-  const path = instancePath.split('/').filter(Boolean).map((s) => (/^\d+$/.test(s) ? Number(s) : s));
+  const path = instancePath.split('/').filter(Boolean).map((s) => (/^\d+$/.test(s) ? Number(s) : decodePointerSegment(s)));
   // yaml's getIn with keepScalar returns the node; its range[0] is the value's start offset.
   const node = path.length ? (doc.getIn(path, true) as { range?: [number, number, number] } | undefined) : undefined;
   const offset = node?.range?.[0] ?? 0;

@@ -76,4 +76,12 @@ describe('runCases', () => {
     expect(results.map((r) => r.outcome)).toEqual(['error', 'error']);
     expect(results[0]?.error).toContain('SecretStorage unavailable');
   });
+
+  it('reports a helpful error when the named environment does not exist in the manifest', async () => {
+    const manifest = { salvo: 1 as const, id: 'proj-12345678', environments: { dev: { vars: { baseUrl: 'http://dev.test' } } } };
+    const results = await runCases({ file: FILE, envName: 'prod', manifest, selected: [0], deps });
+    expect(results[0]?.outcome).toBe('error');
+    expect(results[0]?.error).toContain('Environment "prod" is not defined');
+    expect(results[0]?.error).toContain('dev');
+  });
 });

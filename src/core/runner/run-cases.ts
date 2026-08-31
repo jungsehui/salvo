@@ -18,6 +18,7 @@ export async function runCases(args: {
 }): Promise<RunResult[]> {
   const { file, envName, manifest, deps } = args;
   const env = manifest?.environments?.[envName];
+  const envMissing = manifest?.environments !== undefined && env === undefined;
   const all = file.cases ?? [];
   // Dedupe: caseIndex is an identity, and a duplicate would double-fire the transport.
   const indexes = args.selected === 'all' ? all.map((_, i) => i) : [...new Set(args.selected)].sort((a, b) => a - b);
@@ -27,6 +28,17 @@ export async function runCases(args: {
     const kase = all[i];
     if (!kase) continue;
     const base = { caseIndex: i, caseName: kase.name };
+
+    if (envMissing) {
+      const available = Object.keys(manifest?.environments ?? {}).join(', ') || 'none';
+      results.push({
+        ...base,
+        outcome: 'error',
+        assertions: [],
+        error: `Environment "${envName}" is not defined in salvo.yaml (available: ${available}).`,
+      });
+      continue;
+    }
 
     let resolved;
     try {

@@ -25,4 +25,4 @@ cases:
     expect:
       status: 200
       json:
-        "data.continent": { exists: true }
+        "data.continent": null

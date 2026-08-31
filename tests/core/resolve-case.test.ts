@@ -78,4 +78,16 @@ describe('resolveCase', () => {
     expect(r.kind).toBe('error');
     if (r.kind === 'error') expect(r.message).toContain('cyclic variable references');
   });
+
+  it('reports mutual cycles reached without a case-level override', async () => {
+    const file: SalvoFile = {
+      salvo: 1,
+      request: { url: '{{a}}/g', operation: 'q' },
+      vars: { a: '{{b}}', b: '{{a}}' },
+      cases: [{ name: 'mutual' }],
+    };
+    const r = await resolveCase({ file, envName: 't', env: undefined, caseIndex: 0, secrets });
+    expect(r.kind).toBe('error');
+    if (r.kind === 'error') expect(r.message).toContain('cyclic variable references');
+  });
 });

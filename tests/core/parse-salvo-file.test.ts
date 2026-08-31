@@ -54,4 +54,14 @@ describe('parseSalvoFile', () => {
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.issues.some((i) => i.message.includes('Duplicate case name'))).toBe(true);
   });
+
+  it('decodes JSON-pointer escapes in schema-violation paths', () => {
+    const bad = 'salvo: 1\nrequest:\n  url: x\n  operation: q\n  headers:\n    a/b: 1\n';
+    const r = parseSalvoFile(bad);
+    expect(r.ok).toBe(false);
+    const issue = r.issues.find((i) => i.message.includes('headers'));
+    expect(issue?.message).toContain('a/b');       // decoded, not a~1b
+    expect(issue?.message).not.toContain('a~1b');
+    expect(issue?.line).toBe(6);                    // position resolved through the decoded path
+  });
 });

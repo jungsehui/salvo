@@ -7,6 +7,11 @@ import manifestSchema from '../../../schemas/salvo-manifest.schema.json';
 const ajv = new Ajv({ allErrors: true, allowUnionTypes: true });
 const validate = ajv.compile<SalvoManifest>(manifestSchema as object);
 
+/** RFC 6901: '~1' -> '/', then '~0' -> '~'. */
+function decodePointerSegment(seg: string): string {
+  return seg.replace(/~1/g, '/').replace(/~0/g, '~');
+}
+
 export type ParseManifestResult =
   | { ok: true; manifest: SalvoManifest; issues: ParseIssue[] }
   | { ok: false; issues: ParseIssue[] };
@@ -29,12 +34,17 @@ export function parseManifest(text: string): ParseManifestResult {
   if (!validate(data)) {
     return {
       ok: false,
-      issues: (validate.errors ?? []).map((err: ErrorObject) => ({
-        message: `${err.instancePath || '/'} ${err.message ?? 'is invalid'}${err.keyword === 'required' ? ` (${JSON.stringify(err.params)})` : ''}`,
-        line: 1,
-        col: 1,
-        severity: 'error' as const,
-      })),
+      issues: (validate.errors ?? []).map((err: ErrorObject) => {
+        const path = err.instancePath
+          ? '/' + err.instancePath.split('/').filter(Boolean).map(decodePointerSegment).join('/')
+          : '/';
+        return {
+          message: `${path} ${err.message ?? 'is invalid'}${err.keyword === 'required' ? ` (${JSON.stringify(err.params)})` : ''}`,
+          line: 1,
+          col: 1,
+          severity: 'error' as const,
+        };
+      }),
     };
   }
 

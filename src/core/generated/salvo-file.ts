@@ -51,7 +51,7 @@ export interface SalvoRequest {
   operation: string;
   operationName?: string;
   /**
-   * GraphQL variables. String values may contain {{var}} placeholders.
+   * GraphQL variables. Top-level string values may contain {{var}} placeholders; strings nested inside objects or arrays pass through untouched.
    */
   variables?: {
     [k: string]: unknown;
