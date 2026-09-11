@@ -41,16 +41,7 @@ export function locateOperation(fileText: string):
   const headerLine = lc.linePos(node.range![0]).line;   // 1-based
   const contentStartLine = headerLine + 1;               // file line of op line 0
   const fileLines = fileText.split('\n');
-  // Relies on YAML auto-detected indentation: the first non-blank content line
-  // sets the block's floor, so scanning to it cannot overshoot the block.
-  let indent = 0;
-  for (let l = contentStartLine - 1; l < fileLines.length; l += 1) {
-    const lineText = fileLines[l]!;
-    if (lineText.trim().length > 0) {
-      indent = lineText.length - lineText.trimStart().length;
-      break;
-    }
-  }
+  const indent = blockContentIndent(node, fileLines, contentStartLine);
   // A clip-chomped block ('|') ends with '\n'; the split's trailing '' is not a
   // real operation line and must not make the next YAML line map as one.
   const opLineCount = text.split('\n').length - (text.endsWith('\n') ? 1 : 0);
@@ -68,4 +59,23 @@ export function locateOperation(fileText: string):
       },
     },
   };
+}
+
+/**
+ * Column where block content starts. With an explicit indentation indicator
+ * ('|2') the content indent is the parent indent plus the digit, and any
+ * further leading spaces are content (yaml's CST exposes both). Otherwise
+ * YAML auto-detects it from the first non-blank content line, which therefore
+ * cannot overshoot the block.
+ */
+function blockContentIndent(node: Scalar, fileLines: string[], contentStartLine: number): number {
+  const token = node.srcToken as unknown as { indent?: number; props?: { type: string; source: string }[] } | undefined;
+  const header = token?.props?.find((p) => p.type === 'block-scalar-header');
+  const digit = header ? /[1-9]/.exec(header.source)?.[0] : undefined;
+  if (digit !== undefined && token?.indent !== undefined) return token.indent + Number(digit);
+  for (let l = contentStartLine - 1; l < fileLines.length; l += 1) {
+    const lineText = fileLines[l]!;
+    if (lineText.trim().length > 0) return lineText.length - lineText.trimStart().length;
+  }
+  return 0;
 }

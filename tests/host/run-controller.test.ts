@@ -43,6 +43,44 @@ describe('runSalvoFile', () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.issues[0]?.severity).toBe('error');
   });
+
+  it('redacts resolved secret values from results and the report', async () => {
+    const doc = `salvo: 1
+request:
+  url: "http://x.test/graphql"
+  headers: { auth: "{{secret:TOKEN}}", mode: "{{mode}}" }
+  operation: |
+    query { ok }
+vars: { mode: echo }
+cases:
+  - name: echo
+    expect: { json: { "data.echo": "nope" } }
+  - name: boom
+    vars: { mode: boom }
+`;
+    const echoing: Transport = async (req): Promise<HttpResponse> => {
+      const token = req.headers['auth'] ?? '';
+      if (req.headers['mode'] === 'boom') throw new Error(`rejected token ${token}`);
+      const json = { data: { echo: token } };
+      return { status: 200, headers: { 'x-echo': token }, bodyText: JSON.stringify(json), json, durationMs: 1 };
+    };
+    const r = await runSalvoFile({
+      fileText: doc,
+      manifest: undefined,
+      envName: 'default',
+      deps: { secrets: async (n) => (n === 'TOKEN' ? 's3cret-value' : undefined), send: echoing },
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(JSON.stringify(r.results) + r.report).not.toContain('s3cret-value');
+    expect(r.results[0]?.response?.headers['x-echo']).toBe('<redacted>');
+    expect(r.results[1]?.error).toBe('rejected token <redacted>');
+  });
+
+  it('runs only the selected cases', async () => {
+    const r = await runSalvoFile({ fileText: DOC, manifest: undefined, envName: 'default', selected: [2], deps: { secrets: async () => undefined, send } });
+    expect(r.ok && r.results.map((x) => x.caseIndex)).toEqual([2]);
+  });
 });
 
 describe('formatRunReport', () => {

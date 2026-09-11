@@ -5,7 +5,10 @@ import { buildClientSchema, buildSchema, introspectionFromSchema } from 'graphql
 import { locateOperation } from '../../src/core/lang/operation-source';
 import {
   getCompletionsAt,
+  getCompletionsInText,
+  getDiagnosticsInText,
   getHoverAt,
+  getHoverInText,
   getOperationDiagnostics,
   getVariablesJsonSchemaFor,
 } from '../../src/core/lang/graphql-language';
@@ -94,5 +97,22 @@ describe('graphql-language', () => {
     expect(getOperationDiagnostics(clientSchema, good.source)).toEqual([]);
     const labels = getCompletionsAt(clientSchema, op, { line: 6, col: 12 }).map((i) => i.label);
     expect(labels).toContain('id');
+  });
+});
+
+describe('graphql-language (operation-text coordinates)', () => {
+  const text = 'query Bad {\n  me { nope }\n}\n';
+
+  it('reports diagnostics with 0-based start and end positions', () => {
+    const [d] = getDiagnosticsInText(schema, text);
+    expect(d?.message).toContain('nope');
+    expect(d?.start).toEqual({ line: 1, character: 7 });
+    expect(d?.end).toEqual({ line: 1, character: 12 });
+    expect(d?.severity).toBe('error');
+  });
+
+  it('completes and hovers at text positions', () => {
+    expect(getCompletionsInText(schema, text, { line: 1, character: 7 }).map((c) => c.label)).toContain('id');
+    expect(getHoverInText(schema, text, { line: 1, character: 3 })).toBe('Query.me: User');
   });
 });

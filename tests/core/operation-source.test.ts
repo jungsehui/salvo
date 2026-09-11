@@ -81,4 +81,16 @@ describe('locateOperation', () => {
     if (!r.ok) throw new Error(r.reason);
     expect(r.source.fromFilePosition({ line: 8, col: 5 })).toBeUndefined();
   });
+
+  it('honours an explicit indentation indicator (|2) so leading spaces stay content', () => {
+    // 1 salvo / 2 request: / 3 url / 4 operation: |2 / 5 "      query A {" / 6 "      me { id }" / 7 "    }"
+    const text = `salvo: 1\nrequest:\n  url: "http://x"\n  operation: |2\n      query A {\n      me { id }\n    }\n`;
+    const r = locateOperation(text);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.source.text).toBe('  query A {\n  me { id }\n}\n');
+    // op line 0, character 2 is the 'q' of "query": file line 5, col 7 (content indent is 2 + 2 = 4)
+    expect(r.source.toFilePosition({ line: 0, character: 2 })).toEqual({ line: 5, col: 7 });
+    expect(r.source.fromFilePosition({ line: 5, col: 7 })).toEqual({ line: 0, character: 2 });
+  });
 });

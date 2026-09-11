@@ -1,5 +1,6 @@
 import { parseSalvoFile } from '../core/format/parse-salvo-file';
 import { runCases } from '../core/runner/run-cases';
+import { redactResults } from '../core/runner/redact';
 import type { SalvoManifest } from '../core/generated/salvo-manifest';
 import type { ParseIssue, RunResult, SecretResolver, Transport } from '../core/types';
 
@@ -7,17 +8,27 @@ export async function runSalvoFile(args: {
   fileText: string;
   manifest: SalvoManifest | undefined;
   envName: string;
+  selected?: number[] | 'all';
   deps: { secrets: SecretResolver; send: Transport };
 }): Promise<{ ok: false; issues: ParseIssue[] } | { ok: true; results: RunResult[]; report: string }> {
   const parsed = parseSalvoFile(args.fileText);
   if (!parsed.ok) return { ok: false, issues: parsed.issues };
-  const results = await runCases({
+  // Record every resolved value so nothing a transport error or a server echo
+  // carries can leak into the report or a webview (plan 3a tripwire).
+  const seen = new Set<string>();
+  const secrets: SecretResolver = async (name) => {
+    const value = await args.deps.secrets(name);
+    if (value !== undefined) seen.add(value);
+    return value;
+  };
+  const raw = await runCases({
     file: parsed.file,
     envName: args.envName,
     manifest: args.manifest,
-    selected: 'all',
-    deps: args.deps,
+    selected: args.selected ?? 'all',
+    deps: { secrets, send: args.deps.send },
   });
+  const results = redactResults(raw, [...seen]);
   return { ok: true, results, report: formatRunReport(results, args.envName) };
 }
 

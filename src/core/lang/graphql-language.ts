@@ -8,21 +8,38 @@ import {
   Position,
   type CompletionItem,
 } from 'graphql-language-service';
+import type { LangDiagnostic, TextPosition } from '../../shared/protocol';
 import type { ParseIssue } from '../types';
 import type { OperationSource } from './operation-source';
 
 export type { CompletionItem };
 
-export function getOperationDiagnostics(schema: GraphQLSchema, op: OperationSource): ParseIssue[] {
-  return getDiagnostics(op.text, schema).map((d) => {
-    const { line, col } = op.toFilePosition({ line: d.range.start.line, character: d.range.start.character });
+/** Diagnostics in operation-text coordinates; the file-positioned variant maps these through the OperationSource. */
+export function getDiagnosticsInText(schema: GraphQLSchema, text: string): LangDiagnostic[] {
+  return getDiagnostics(text, schema).map((d) => {
     const msg = typeof d.message === 'string' ? d.message : d.message.value;
     return {
       message: msg.split('\n')[0] ?? msg,
-      line,
-      col,
+      start: { line: d.range.start.line, character: d.range.start.character },
+      end: { line: d.range.end.line, character: d.range.end.character },
       severity: d.severity === 2 ? ('warning' as const) : ('error' as const),
     };
+  });
+}
+
+export function getCompletionsInText(schema: GraphQLSchema, text: string, pos: TextPosition): CompletionItem[] {
+  return getAutocompleteSuggestions(schema, text, new Position(pos.line, pos.character));
+}
+
+export function getHoverInText(schema: GraphQLSchema, text: string, pos: TextPosition): string | undefined {
+  const contents = getHoverInformation(schema, text, new Position(pos.line, pos.character));
+  return typeof contents === 'string' && contents.length > 0 ? contents : undefined;
+}
+
+export function getOperationDiagnostics(schema: GraphQLSchema, op: OperationSource): ParseIssue[] {
+  return getDiagnosticsInText(schema, op.text).map((d) => {
+    const { line, col } = op.toFilePosition(d.start);
+    return { message: d.message, line, col, severity: d.severity };
   });
 }
 
@@ -32,8 +49,7 @@ export function getCompletionsAt(
   filePos: { line: number; col: number }
 ): CompletionItem[] {
   const pos = op.fromFilePosition(filePos);
-  if (!pos) return [];
-  return getAutocompleteSuggestions(schema, op.text, new Position(pos.line, pos.character));
+  return pos ? getCompletionsInText(schema, op.text, pos) : [];
 }
 
 export function getHoverAt(
@@ -42,9 +58,7 @@ export function getHoverAt(
   filePos: { line: number; col: number }
 ): string | undefined {
   const pos = op.fromFilePosition(filePos);
-  if (!pos) return undefined;
-  const contents = getHoverInformation(schema, op.text, new Position(pos.line, pos.character));
-  return typeof contents === 'string' && contents.length > 0 ? contents : undefined;
+  return pos ? getHoverInText(schema, op.text, pos) : undefined;
 }
 
 export function getVariablesJsonSchemaFor(
