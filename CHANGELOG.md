@@ -12,7 +12,9 @@
 - Every edit made in the visual editor is written back into the same text
   document as one small range edit: comments, key order, block scalars, and
   untouched long lines survive, and undo and save work as usual. The first
-  edit of a file may normalize its indentation to two spaces.
+  edit of a file may normalize its indentation, comment spacing, and hand-wrapped plain scalars.
+- Saving with Cmd/Ctrl+S or switching away from the editor commits the field
+  you are typing in.
 - Run results are redacted: every resolved secret value of four or more
   characters is replaced wherever it appears verbatim, before it reaches the
   report or the editor.

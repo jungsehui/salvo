@@ -20,6 +20,8 @@ export function appendCase(text: string, name: string): EditResult {
   if (existing === undefined) {
     doc.set('cases', doc.createNode([item]));
   } else if (isSeq(existing)) {
+    // `cases: []` (left by removing the last case) would otherwise grow as a flow list.
+    if (existing.items.length === 0) existing.flow = false;
     existing.add(doc.createNode(item));
   } else {
     return { ok: false, error: '"cases" is not a list.' };

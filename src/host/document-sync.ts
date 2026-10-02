@@ -33,7 +33,7 @@ export function coerceLike(current: unknown, raw: string): string | number | boo
 function nextText(text: string, edit: FieldEdit): { ok: true; text: string } | { ok: false; error: string } {
   switch (edit.kind) {
     case 'scalar': {
-      // Schema-invalid but well-formed YAML stays editable, so the form can repair what the banner reports.
+      // Gate on YAML errors only; the GUI is already read-only while the file fails the schema (decision 9.3), so this is a backstop for racing edits.
       const doc = parseDocument(text);
       if (doc.errors.length > 0) return { ok: false, error: UNPARSABLE };
       const current = doc.getIn(edit.path);
@@ -45,7 +45,7 @@ function nextText(text: string, edit: FieldEdit): { ok: true; text: string } | {
       return updateScalar(text, edit.path, value);
     }
     case 'operation': {
-      // Schema-invalid but well-formed YAML stays editable, so the form can repair what the banner reports.
+      // Gate on YAML errors only; the GUI is already read-only while the file fails the schema (decision 9.3), so this is a backstop for racing edits.
       const doc = parseDocument(text);
       if (doc.errors.length > 0) return { ok: false, error: UNPARSABLE };
       const current = doc.getIn(['request', 'operation']);
@@ -77,8 +77,10 @@ export function applyFieldEdit(text: string, edit: FieldEdit): ApplyResult {
       return { ok: false, error: `This change would make the file invalid: ${after.issues[0]?.message ?? 'unknown error'}` };
     }
   }
-  const replace = minimalTextEdit(text, next.text);
-  return replace ? { ok: true, text: next.text, replace } : { ok: true, text };
+  // yaml emits LF; a CRLF document keeps its line endings so the edit stays one small range.
+  const out = text.includes('\r\n') ? next.text.replace(/\r?\n/g, '\r\n') : next.text;
+  const replace = minimalTextEdit(text, out);
+  return replace ? { ok: true, text: out, replace } : { ok: true, text };
 }
 
 /** Suppresses the change event our own WorkspaceEdit produces (decision 9.2). Text equality, not counters: it cannot drift. */

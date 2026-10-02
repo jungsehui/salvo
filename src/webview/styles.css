@@ -13,7 +13,6 @@ button:hover { background: var(--vscode-button-hoverBackground); }
 button:disabled { opacity: 0.5; cursor: default; }
 button.icon { background: transparent; color: var(--vscode-foreground); padding: 2px 6px; }
 input, select, textarea { color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border, transparent); padding: 3px 6px; font-family: inherit; font-size: inherit; }
-textarea.operation { width: 100%; min-height: 160px; box-sizing: border-box; font-family: var(--vscode-editor-font-family); }
 .banner { padding: 6px 12px; }
 .banner.error { background: var(--vscode-inputValidation-errorBackground); border-bottom: 1px solid var(--vscode-inputValidation-errorBorder); }
 .banner.info { background: var(--vscode-inputValidation-infoBackground); border-bottom: 1px solid var(--vscode-inputValidation-infoBorder); }

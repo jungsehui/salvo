@@ -114,7 +114,7 @@ remove, run one, run all), and the selected case's response with its
 assertions. The operation editor completes and validates against your
 schema. Every edit is written back into the same text document as one small range
 edit (comments, key order, and block scalars survive; the first edit may
-normalize indentation), so `git diff` stays readable and the text editor can
+normalize indentation and comment spacing), so `git diff` stays readable and the text editor can
 stay open next to it. Expectations (`expect`) are shown read-only; edit them
 in the text editor.
 
@@ -154,8 +154,9 @@ Requires **Node 20+** (`@vscode/vsce` declares `engines.node >= 20`).
 
 ```bash
 npm install
-npm run check      # tsc --noEmit
-npm run compile
+npm run check      # tsc for the host and the webview
+npm run build      # esbuild: dist/extension.js + dist/webview.js
+npm test           # vitest
 ```
 
 Press `F5` in VS Code to launch an Extension Development Host.

@@ -55,6 +55,20 @@ describe('appendCase', () => {
     const r = appendCase(text, 'b');
     expect(r.ok && r.text.startsWith(`salvo: 1\nrequest:\n  url: "${long}"\n`)).toBe(true);
   });
+
+  it('writes a block list after the last case was removed', () => {
+    let text = DOC;
+    for (let i = 0; i < 2; i += 1) {
+      const r = removeCase(text, 0);
+      if (!r.ok) throw new Error(r.error);
+      text = r.text;
+    }
+    const r = appendCase(text, 'fresh');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.text).toContain('cases:\n  - name: fresh\n');
+    expect(r.text).not.toContain('cases: [');
+  });
 });
 
 describe('removeCase', () => {

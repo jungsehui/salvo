@@ -24,3 +24,4 @@ tsconfig.test.json
 .vscode/**
 .gitignore
 tsconfig.webview.json
+dist/*.map

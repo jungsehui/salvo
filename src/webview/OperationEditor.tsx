@@ -128,6 +128,18 @@ export function OperationEditor({ text, bridge, nonce, schemaReady, onCommit }: 
           backgroundColor: 'var(--vscode-editorSuggestWidget-selectedBackground)',
           color: 'var(--vscode-editorSuggestWidget-selectedForeground, var(--vscode-editorSuggestWidget-foreground))',
         },
+        // CodeMirror draws lint squiggles as data: SVG backgrounds, which the
+        // CSP blocks (img-src); draw them with text-decoration instead.
+        '.cm-lintRange-error': {
+          backgroundImage: 'none',
+          textDecoration: 'underline wavy var(--vscode-editorError-foreground, #f14c4c)',
+          textDecorationSkipInk: 'none',
+        },
+        '.cm-lintRange-warning': {
+          backgroundImage: 'none',
+          textDecoration: 'underline wavy var(--vscode-editorWarning-foreground, #cca700)',
+          textDecorationSkipInk: 'none',
+        },
       }),
     ];
 

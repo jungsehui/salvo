@@ -59,7 +59,7 @@
       "editor/title": [
         {
           "command": "salvo.openEditor",
-          "when": "resourceExtname == .salvo",
+          "when": "resourceExtname == .salvo && activeCustomEditorId != salvo.editor",
           "group": "navigation"
         }
       ]

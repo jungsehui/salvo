@@ -100,6 +100,16 @@ describe('applyFieldEdit', () => {
       error: 'cases.0.vars.verbose holds true or false. Enter true or false, or change its type in the text editor.',
     });
   });
+
+  it('keeps CRLF line endings so the edit stays one small range', () => {
+    const crlf = DOC.replace(/\n/g, '\r\n');
+    const at = crlf.indexOf('5000');
+    expect(applyFieldEdit(crlf, { kind: 'scalar', path: ['request', 'timeoutMs'], value: '7000' })).toEqual({
+      ok: true,
+      text: crlf.replace('5000', '7000'),
+      replace: { start: at, end: at + 1, text: '7' },
+    });
+  });
 });
 
 describe('buildDocumentView', () => {
