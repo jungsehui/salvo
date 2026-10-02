@@ -2440,6 +2440,10 @@ export class SalvoEditorProvider implements vscode.CustomTextEditorProvider {
           if (await enqueueEdit({ kind: 'removeCase', index: raw.index })) this.services.runStore.clear(key);
           return;
         case 'run':
+          // A blur-commit followed by a Run click arrives as two messages: let
+          // the queued edits land first, without putting the run itself in the
+          // queue (a long run must not hold later edits back).
+          await editQueue;
           return this.services.run(document, raw.selected);
         case 'selectEnvironment':
           await this.services.setEnvironment(document, raw.name);
