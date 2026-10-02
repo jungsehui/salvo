@@ -5,9 +5,13 @@ import {
   getCompletionsAt,
   getHoverAt,
   getOperationDiagnostics,
+  getCompletionsInText,
+  getDiagnosticsInText,
+  getHoverInText,
   type CompletionItem,
 } from '../core/lang/graphql-language';
 import type { ParseIssue } from '../core/types';
+import type { LangCompletion, LangDiagnostic, TextPosition } from '../shared/protocol';
 
 export type { CompletionItem };
 
@@ -42,4 +46,22 @@ export function hoverInFile(
   const located = locateOperation(text);
   if (!located.ok) return undefined;
   return getHoverAt(schema, located.source, pos);
+}
+
+/** Language ops in operation-text coordinates, for the visual editor. All three stay quiet without a schema. */
+export function completionsInOperation(schema: GraphQLSchema | undefined, text: string, pos: TextPosition): LangCompletion[] {
+  if (!schema) return [];
+  return getCompletionsInText(schema, text, pos).map((c) => ({
+    label: c.label,
+    ...(c.detail !== undefined ? { detail: c.detail } : {}),
+    ...(typeof c.documentation === 'string' ? { documentation: c.documentation } : {}),
+  }));
+}
+
+export function diagnosticsInOperation(schema: GraphQLSchema | undefined, text: string): LangDiagnostic[] {
+  return schema ? getDiagnosticsInText(schema, text) : [];
+}
+
+export function hoverInOperation(schema: GraphQLSchema | undefined, text: string, pos: TextPosition): string | undefined {
+  return schema ? getHoverInText(schema, text, pos) : undefined;
 }

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { buildSchema } from 'graphql';
-import { collectDiagnostics, completionsInFile, hoverInFile } from '../../src/host/salvo-language';
+import { collectDiagnostics, completionsInFile, hoverInFile, completionsInOperation, diagnosticsInOperation, hoverInOperation } from '../../src/host/salvo-language';
 
 const schema = buildSchema(readFileSync(fileURLToPath(new URL('../core/fixtures/demo.graphql', import.meta.url)), 'utf8'));
 
@@ -38,5 +38,21 @@ describe('salvo-language glue', () => {
     expect(hoverInFile(DOC, schema, { line: 6, col: 8 })).toContain('User');
     expect(completionsInFile(DOC, undefined, { line: 6, col: 12 })).toEqual([]);
     expect(hoverInFile(DOC, undefined, { line: 6, col: 8 })).toBeUndefined();
+  });
+});
+
+describe('operation-relative language ops', () => {
+  const text = 'query Bad {\n  me { nope }\n}\n';
+  it('serves completions, diagnostics, and hover in text coordinates', () => {
+    expect(completionsInOperation(schema, text, { line: 1, character: 7 }).map((c) => c.label)).toContain('id');
+    expect(diagnosticsInOperation(schema, text)).toEqual([
+      expect.objectContaining({ start: { line: 1, character: 7 }, end: { line: 1, character: 12 }, severity: 'error' }),
+    ]);
+    expect(hoverInOperation(schema, text, { line: 1, character: 3 })).toBe('Query.me: User');
+  });
+  it('stays quiet without a schema', () => {
+    expect(completionsInOperation(undefined, text, { line: 1, character: 7 })).toEqual([]);
+    expect(diagnosticsInOperation(undefined, text)).toEqual([]);
+    expect(hoverInOperation(undefined, text, { line: 1, character: 3 })).toBeUndefined();
   });
 });
