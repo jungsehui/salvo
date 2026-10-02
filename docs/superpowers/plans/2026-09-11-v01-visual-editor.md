@@ -26,6 +26,9 @@
 - **Language positions:** the webview and host exchange 0-based `{ line, character }` positions relative to the operation text (never file positions).
 - English-only user-facing strings; generic (no company values); no telemetry; `engines.vscode` stays `^1.110.0`.
 - Node 20+, TS strict clean, kebab-case files (React components `PascalCase.tsx`), `npm test && npm run check && npm run gen:check && npm run build` green at every commit.
+- **How to run verification (amended 2026-10-02, machine rule):** heavy commands (vitest, build, test:vscode, package) run one per shell call through `memguard`, and every call gets Node 24 through a PATH prefix (`@vscode/test-electron` needs Node 22+; the default shell has Node 20). The shell hook blocks chains such as `npm test && npm run check`. Wherever a step below chains commands with `&&`, run each link as its own call in this form:
+  `PATH="$HOME/.nvm/versions/node/v24.15.0/bin:$PATH" memguard -- npm test` (likewise `memguard -- npx vitest run <files>`, `memguard -- npm run build`, `memguard -- npm run test:vscode`, `memguard -- npm run package`). Light commands keep the prefix without memguard: `PATH="…" npm run check`, `PATH="…" npm run gen:check`. A trailing `| tail` pipe is fine.
+- **Commits** end with the trailer `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` (pass it as a second `-m`).
 
 ## File Structure
 
@@ -58,7 +61,8 @@ src/
    ├─ vscode-api.d.ts                # acquireVsCodeApi declaration
    └─ styles.css
 tests/core/{edit-structure,minimal-edit,redact}.test.ts   (new)
-tests/core/{operation-source,graphql-language,no-vscode-import}.test.ts   (extended)
+tests/core/module-purity.test.ts                         (new; widened guard)
+tests/core/{operation-source,graphql-language}.test.ts   (extended)
 tests/host/{document-sync,run-store,webview-html}.test.ts (new)
 tests/host/{run-controller,salvo-language}.test.ts        (extended)
 tests/shared/protocol.test.ts, tests/webview/{state,bridge}.test.ts (new)
@@ -1303,8 +1307,8 @@ The React shell renders the snapshot, edits scalars, adds/removes cases, runs, a
 
 **Files:**
 - Create: `tsconfig.webview.json`, `src/webview/vscode-api.d.ts`, `src/webview/bridge.ts`, `src/webview/state.ts`, `src/webview/main.tsx`, `src/webview/App.tsx`, `src/webview/RequestPanel.tsx`, `src/webview/CasesPanel.tsx`, `src/webview/ResultsPanel.tsx`, `src/webview/ScalarField.tsx`, `src/webview/OperationEditor.tsx`, `src/webview/styles.css`
-- Modify: `esbuild.mjs`, `package.json` (deps + `check` script), `tsconfig.json` (exclude `src/webview`), `.vscodeignore` (add `tsconfig.webview.json`), `tests/core/no-vscode-import.test.ts` (widen)
-- Test: `tests/webview/state.test.ts`, `tests/webview/bridge.test.ts`
+- Modify: `esbuild.mjs`, `package.json` (deps + `check` script), `tsconfig.json` (exclude `src/webview`), `.vscodeignore` (add `tsconfig.webview.json`)
+- Test: `tests/webview/state.test.ts`, `tests/webview/bridge.test.ts`, `tests/core/module-purity.test.ts` (new). The existing `tests/core/no-vscode-import.test.ts` stays untouched: existing tests are never modified, only added to (ruling 2026-10-02).
 
 **Interfaces:**
 - Consumes: `protocol.ts` types.
@@ -1464,7 +1468,7 @@ describe('Bridge', () => {
 });
 ```
 
-Replace `tests/core/no-vscode-import.test.ts` entirely:
+Create `tests/core/module-purity.test.ts` (leave `tests/core/no-vscode-import.test.ts` exactly as it is; its core/host check stays as a second net):
 ```ts
 import { describe, it, expect } from 'vitest';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -1670,8 +1674,6 @@ const bridge = new Bridge((m) => vscode.postMessage(m));
 const nonce = (document.currentScript as HTMLScriptElement | null)?.dataset['nonce'] ?? '';
 const root = document.getElementById('root');
 if (root) createRoot(root).render(<App bridge={bridge} nonce={nonce} />);
-// Pull the full state whenever this script runs: first load and every re-show (decision 8).
-bridge.send({ type: 'ready' });
 ```
 
 `src/webview/App.tsx`:
@@ -1697,6 +1699,10 @@ export function App({ bridge, nonce }: { bridge: Bridge; nonce: string }) {
       if (!bridge.receive(e.data)) dispatch({ kind: 'host', msg: e.data });
     };
     window.addEventListener('message', onMessage);
+    // Pull the full state only once the listener exists, so the reply cannot
+    // arrive before anyone hears it. Runs on first load and on every re-show,
+    // because a hidden webview is destroyed and rebuilt (decision 8).
+    bridge.send({ type: 'ready' });
     return () => window.removeEventListener('message', onMessage);
   }, [bridge]);
 
@@ -2053,7 +2059,7 @@ Expected: both bundles emitted (`dist/webview.css` exists because `main.tsx` imp
 - [ ] **Step 8: Commit**
 
 ```bash
-git add package.json package-lock.json tsconfig.json tsconfig.webview.json esbuild.mjs .vscodeignore src/webview tests/webview tests/core/no-vscode-import.test.ts
+git add package.json package-lock.json tsconfig.json tsconfig.webview.json esbuild.mjs .vscodeignore src/webview tests/webview tests/core/module-purity.test.ts
 git commit -m "feat: React webview shell with pure state and bridge, widened purity guard"
 ```
 
@@ -2392,7 +2398,14 @@ export class SalvoEditorProvider implements vscode.CustomTextEditorProvider {
         result.replace.text
       );
       guard.markOwn(result.text);
-      if (!(await vscode.workspace.applyEdit(we))) post({ type: 'notice', level: 'error', message: 'The edit could not be applied.' });
+      if (!(await vscode.workspace.applyEdit(we))) {
+        post({ type: 'notice', level: 'error', message: 'The edit could not be applied.' });
+        return;
+      }
+      // The echo guard swallows the change event of our own edit, so push the
+      // new snapshot here. Without it an added or removed case never reaches
+      // the panel that asked for it (ruling 2026-10-02).
+      await pushState();
     };
 
     const onMessage = async (raw: unknown): Promise<void> => {
@@ -2560,7 +2573,7 @@ git commit -m "feat: custom editor provider, shared run store, and Open Visual E
 ### Task 7: Electron smoke for the custom editor, docs, version 0.1.1, packaging gate
 
 **Files:**
-- Modify: `tests/vscode/extension.smoke.test.ts` (add a test), `package.json` (version), `CHANGELOG.md`, `README.md`, `examples/quickstart/README.md`, `CLAUDE.md`, `.claude/architecture.md`, `.claude/conventions.md`
+- Modify: `tests/vscode/extension.smoke.test.ts` (add a test), `package.json` (version), `CHANGELOG.md`, `README.md`, `examples/quickstart/README.md`, `CLAUDE.md`, `.claude/architecture.md`, `.claude/conventions.md`, `.claude/roadmap.md`
 
 **Interfaces:**
 - Consumes: the packaged extension surface from Tasks 4–6.
@@ -2666,6 +2679,11 @@ v0.1 구현이 끝났다(2026-09). 이 문서는 착수 전에 고정한 경계�
 교체, 결정 8~9 신설).
 ```
 
+`.claude/roadmap.md`: in the v0.1 minimum list, replace item 2 with the line below. The shipped loader reads the manifest, not graphql-config (drift found 2026-10-02):
+```markdown
+2. `salvo.yaml`의 `schema` 키가 가리키는 로컬 SDL 파일(또는 introspection JSON, opt-in URL)을 읽어 스키마를 로드한다
+```
+
 `.claude/conventions.md`: replace the first paragraph (`코드가 아직 없다. …`) with:
 ```markdown
 `custom-intellij-nav`에서 검증된 규칙과, 조사에서 확인된 VS Code API 제약에서
@@ -2683,7 +2701,7 @@ Then the full local gate: `npm test && npm run check && npm run gen:check && gre
 - [ ] **Step 4: Commit**
 
 ```bash
-git add tests/vscode/extension.smoke.test.ts package.json CHANGELOG.md README.md examples/quickstart/README.md CLAUDE.md .claude/architecture.md .claude/conventions.md
+git add tests/vscode/extension.smoke.test.ts package.json CHANGELOG.md README.md examples/quickstart/README.md CLAUDE.md .claude/architecture.md .claude/conventions.md .claude/roadmap.md
 git commit -m "test: visual editor smoke, docs for 0.1.1, version bump"
 ```
 
