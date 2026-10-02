@@ -21,7 +21,8 @@
   ],
   "activationEvents": [
     "workspaceContains:**/*.salvo",
-    "workspaceContains:**/salvo.yaml"
+    "workspaceContains:**/salvo.yaml",
+    "onCustomEditor:salvo.editor"
   ],
   "contributes": {
     "languages": [
@@ -42,6 +43,27 @@
         "url": "./schemas/salvo-manifest.schema.json"
       }
     ],
+    "customEditors": [
+      {
+        "viewType": "salvo.editor",
+        "displayName": "Salvo Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.salvo"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "salvo.openEditor",
+          "when": "resourceExtname == .salvo",
+          "group": "navigation"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "salvo.runCases",
@@ -58,6 +80,11 @@
       {
         "command": "salvo.refreshSchema",
         "title": "Salvo: Refresh Schema"
+      },
+      {
+        "command": "salvo.openEditor",
+        "title": "Salvo: Open Visual Editor",
+        "icon": "$(open-preview)"
       }
     ]
   },

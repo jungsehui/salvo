@@ -6,6 +6,9 @@ import type { ParseIssue } from './core/types';
 import { locateManifest, pickEnvironment, type FileSystemLike, type LocatedManifest } from './host/manifest-locator';
 import { createSecretResolver, makeSecretKey } from './host/secrets';
 import { runSalvoFile } from './host/run-controller';
+import { RunStore, mergeResults } from './host/run-store';
+import { SalvoEditorProvider, VIEW_TYPE, type EditorServices } from './editor-provider';
+import type { SchemaStatus } from './shared/protocol';
 
 const SELECTOR: vscode.DocumentSelector = { language: 'yaml', pattern: '**/*.salvo' };
 const ENV_STATE_KEY = 'salvo.activeEnvironment';
@@ -46,6 +49,7 @@ export function activate(context: vscode.ExtensionContext): void {
   status.command = 'salvo.selectEnvironment';
   const contexts = new Map<string, ProjectContext>();
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
+  const runStore = new RunStore();
 
   const isSalvo = (doc: vscode.TextDocument): boolean => vscode.languages.match(SELECTOR, doc) > 0;
 
@@ -179,6 +183,54 @@ export function activate(context: vscode.ExtensionContext): void {
     return editor;
   };
 
+  /** One run path for the command and the visual editor: results land in the RunStore, the text report in the output channel. */
+  async function runDocument(doc: vscode.TextDocument, selected: number[] | 'all'): Promise<void> {
+    const key = doc.uri.toString();
+    const { ctx } = await getProject(doc);
+    const manifest = ctx.located?.manifest;
+    const envName = envFor(ctx) ?? 'default';
+    const secrets = createSecretResolver(context.secrets, manifest?.id ?? 'no-project', envName);
+    const previous = runStore.get(key)?.results ?? [];
+    runStore.setRunning(key);
+    const outcome = await runSalvoFile({
+      fileText: doc.getText(),
+      manifest,
+      envName,
+      selected,
+      deps: { secrets, send: createFetchTransport() },
+    });
+    if (!outcome.ok) {
+      runStore.setResults(key, previous);
+      void vscode.window.showErrorMessage(`Salvo: cannot run — ${outcome.issues[0]?.message ?? 'parse failed'}`);
+      return;
+    }
+    runStore.setResults(key, selected === 'all' ? outcome.results : mergeResults(previous, outcome.results));
+    output.appendLine('');
+    output.appendLine(outcome.report);
+  }
+
+  async function saveEnvironment(doc: vscode.TextDocument, name: string): Promise<void> {
+    const { ctx } = await getProject(doc);
+    const manifest = ctx.located?.manifest;
+    if (!manifest || !Object.hasOwn(manifest.environments ?? {}, name)) return;
+    const saved = context.workspaceState.get<Record<string, string>>(ENV_STATE_KEY, {});
+    await context.workspaceState.update(ENV_STATE_KEY, { ...saved, [manifest.id]: name });
+    scheduleRefresh(doc);
+  }
+
+  const services: EditorServices = {
+    async project(doc) {
+      const { ctx } = await getProject(doc);
+      const manifest = ctx.located?.manifest;
+      const schemaStatus: SchemaStatus = !manifest?.schema ? 'none' : ctx.schema ? 'ready' : ctx.schemaIssues ? 'failed' : 'loading';
+      return { schema: ctx.schema, schemaStatus, envName: envFor(ctx), envNames: Object.keys(manifest?.environments ?? {}) };
+    },
+    setEnvironment: saveEnvironment,
+    run: runDocument,
+    lang,
+    runStore,
+  };
+
   context.subscriptions.push(
     diagnostics,
     output,
@@ -190,8 +242,23 @@ export function activate(context: vscode.ExtensionContext): void {
       clearTimeout(timers.get(key));
       timers.delete(key);
       diagnostics.delete(doc.uri);
+      runStore.clear(key);
     }),
     vscode.window.onDidChangeActiveTextEditor((e) => void updateStatus(e ?? undefined)),
+
+    vscode.window.registerCustomEditorProvider(VIEW_TYPE, new SalvoEditorProvider(context.extensionUri, services), {
+      webviewOptions: { retainContextWhenHidden: false },
+      supportsMultipleEditorsPerDocument: true,
+    }),
+
+    vscode.commands.registerCommand('salvo.openEditor', async (uri?: vscode.Uri) => {
+      const target = uri ?? vscode.window.activeTextEditor?.document.uri;
+      if (!target || !target.path.endsWith('.salvo')) {
+        void vscode.window.showInformationMessage('Salvo: open a .salvo file first.');
+        return;
+      }
+      await vscode.commands.executeCommand('vscode.openWith', target, VIEW_TYPE);
+    }),
 
     vscode.languages.registerCompletionItemProvider(SELECTOR, {
       async provideCompletionItems(doc, position) {
@@ -220,23 +287,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('salvo.runCases', async () => {
       const editor = requireSalvoEditor();
       if (!editor) return;
-      const doc = editor.document;
-      const { ctx } = await getProject(doc);
-      const manifest = ctx.located?.manifest;
-      const envName = envFor(ctx) ?? 'default';
-      const secrets = createSecretResolver(context.secrets, manifest?.id ?? 'no-project', envName);
-      const outcome = await runSalvoFile({
-        fileText: doc.getText(),
-        manifest,
-        envName,
-        deps: { secrets, send: createFetchTransport() },
-      });
-      if (!outcome.ok) {
-        void vscode.window.showErrorMessage(`Salvo: cannot run — ${outcome.issues[0]?.message ?? 'parse failed'}`);
-        return;
-      }
-      output.appendLine('');
-      output.appendLine(outcome.report);
+      await runDocument(editor.document, 'all');
       output.show(true);
     }),
 
@@ -252,10 +303,8 @@ export function activate(context: vscode.ExtensionContext): void {
       }
       const picked = await vscode.window.showQuickPick(names, { placeHolder: 'Salvo environment' });
       if (picked === undefined) return;
-      const saved = context.workspaceState.get<Record<string, string>>(ENV_STATE_KEY, {});
-      await context.workspaceState.update(ENV_STATE_KEY, { ...saved, [manifest.id]: picked });
+      await saveEnvironment(editor.document, picked);
       await updateStatus(editor);
-      scheduleRefresh(editor.document);
     }),
 
     vscode.commands.registerCommand('salvo.setSecret', async () => {
