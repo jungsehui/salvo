@@ -43,6 +43,11 @@ describe('appendCase', () => {
     expect(appendCase('cases: [unclosed', 'x').ok).toBe(false);
     expect(appendCase('salvo: 1\ncases: nope\n', 'x').ok).toBe(false);
   });
+
+  it('refuses a document whose top level is not a mapping', () => {
+    expect(appendCase('sal', 'x').ok).toBe(false);
+    expect(appendCase('- a\n', 'x').ok).toBe(false);
+  });
 });
 
 describe('removeCase', () => {

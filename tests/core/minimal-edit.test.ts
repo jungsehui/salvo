@@ -30,4 +30,16 @@ describe('minimalTextEdit', () => {
       expect(r ? apply(a, r) : a).toBe(b);
     }
   });
+
+  it('snaps both ends together when the common suffix starts with a low surrogate', () => {
+    // U+1F600 and U+1FA00 share their low surrogate (DE00), so the suffix scan stops inside the pair.
+    expect(minimalTextEdit('x\u{1F600}', 'x\u{1FA00}')).toEqual({ start: 1, end: 3, text: '\u{1FA00}' });
+  });
+
+  it('reproduces the new text even around lone surrogates', () => {
+    for (const [a, b] of [['a', '\uD83Da'], ['\uD83Da', 'a'], ['x\uD83D', 'y\uD83D'], ['\uDE00', '😀']] as const) {
+      const r = minimalTextEdit(a, b);
+      expect(r ? apply(a, r) : a).toBe(b);
+    }
+  });
 });

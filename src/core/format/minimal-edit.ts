@@ -27,7 +27,11 @@ export function minimalTextEdit(oldText: string, newText: string): TextReplace |
     newEnd -= 1;
   }
   if (start > 0 && isHigh(oldText, start - 1)) start -= 1;
-  if (oldEnd < oldText.length && isHigh(oldText, oldEnd - 1)) oldEnd += 1;
-  if (newEnd < newText.length && isHigh(newText, newEnd - 1)) newEnd += 1;
+  // Both ends move together: the suffix after them is identical in both
+  // strings, so advancing both by one keeps the replacement exact.
+  if (oldEnd < oldText.length && (isHigh(oldText, oldEnd - 1) || isHigh(newText, newEnd - 1))) {
+    oldEnd += 1;
+    newEnd += 1;
+  }
   return { start, end: oldEnd, text: newText.slice(start, newEnd) };
 }

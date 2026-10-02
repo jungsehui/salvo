@@ -1,4 +1,4 @@
-import { parseDocument, isSeq } from 'yaml';
+import { parseDocument, isSeq, isMap } from 'yaml';
 
 type EditResult = { ok: true; text: string } | { ok: false; error: string };
 
@@ -11,6 +11,9 @@ export function appendCase(text: string, name: string): EditResult {
   const doc = parseDocument(text, { keepSourceTokens: true });
   if (doc.errors.length > 0) {
     return { ok: false, error: `Cannot edit a file with YAML errors: ${doc.errors[0]?.message ?? 'unknown'}` };
+  }
+  if (doc.contents !== null && !isMap(doc.contents)) {
+    return { ok: false, error: 'The file is not a YAML mapping.' };
   }
   const item = { name, vars: {}, expect: {} };
   const existing = doc.get('cases', true);
