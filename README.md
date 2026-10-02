@@ -2,13 +2,13 @@
 
 A file-first API client for VS Code where **one request carries many named cases**.
 
-> **Status: early alpha — the v0.1 foundation is implemented and tested.**
-> The core engine, the GraphQL layer, and the extension foundation are in:
-> `.salvo` files get GraphQL diagnostics, completions, and hover in the text
-> editor, with environments, secrets, and case runs from the command palette.
-> The visual request editor is the next milestone. See the
+> **Status: pre-release 0.1.x on the Marketplace.**
+> `.salvo` files work in two editors: the plain text editor (GraphQL
+> diagnostics, completions, hover) and the visual editor (request form,
+> cases, runs, responses). Environments, secrets, and case runs are shared
+> between them. See the
 > [roadmap](https://github.com/jungsehui/salvo/blob/main/.claude/roadmap.md)
-> for what v0.1 will and will not contain.
+> for what v0.1 does and does not contain.
 
 ## The problem
 
@@ -104,6 +104,17 @@ Saying no is part of the design. Each of these is a deliberate exclusion with a 
 | **JavaScript pre/post-request scripting** | Sandboxing, timeouts, and the security surface cost more than declarative assertions are worth. Request chaining covers the real cases. |
 | **Performance traces, field usage stats** | Those need a server plugin or a hosted registry. That is observability, not an editor tool. |
 | **A schema registry** | Git already does this. |
+
+## Visual editor
+
+Right-click a `.salvo` file → **Open With → Salvo Editor**, click the
+preview button in the editor title, or run `Salvo: Open Visual Editor`.
+Three panels: the request (URL, headers, operation), the cases (add,
+remove, run one, run all), and the selected case's response with its
+assertions. The operation editor completes and validates against your
+schema. Every edit is written back into the same text document as a
+minimal change, so `git diff` stays readable and the text editor can stay
+open next to it.
 
 ## Design
 

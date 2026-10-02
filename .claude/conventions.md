@@ -1,7 +1,7 @@
 # Conventions: DO and DON'T
 
-코드가 아직 없다. 여기 적힌 것은 `custom-intellij-nav`에서 검증된 규칙과,
-이번 조사에서 확인된 VS Code API 제약에서 도출한 규칙이다.
+`custom-intellij-nav`에서 검증된 규칙과, 조사에서 확인된 VS Code API 제약에서
+도출한 규칙이다. v0.1 코드는 전부 이 규칙 아래에서 작성됐다.
 
 ## DO
 

@@ -7,6 +7,6 @@ Two files, no accounts, no company setup:
   variables and expectations, run as one volley against the public
   [Countries GraphQL API](https://countries.trevorblades.com).
 
-Until the VS Code editor lands (plan 3), you can exercise the same flow
-programmatically; `tests/core/end-to-end.test.ts` does exactly this against
-a local fixture server.
+Open `countries.salvo`, then **Salvo: Open Visual Editor** (or the preview
+button in the editor title) and press **Run all cases**. The same two cases
+also run from `Salvo: Run Cases in Current File` in the text editor.
