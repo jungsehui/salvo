@@ -69,6 +69,14 @@ function nextText(text: string, edit: FieldEdit): { ok: true; text: string } | {
 export function applyFieldEdit(text: string, edit: FieldEdit): ApplyResult {
   const next = nextText(text, edit);
   if (!next.ok) return next;
+  // The form never turns a valid file invalid: the GUI would then show a stale
+  // model while edits land on the live text (decision 9.3).
+  if (parseSalvoFile(text).ok) {
+    const after = parseSalvoFile(next.text);
+    if (!after.ok) {
+      return { ok: false, error: `This change would make the file invalid: ${after.issues[0]?.message ?? 'unknown error'}` };
+    }
+  }
   const replace = minimalTextEdit(text, next.text);
   return replace ? { ok: true, text: next.text, replace } : { ok: true, text };
 }

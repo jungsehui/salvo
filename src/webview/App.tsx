@@ -28,6 +28,8 @@ export function App({ bridge, nonce }: { bridge: Bridge; nonce: string }) {
 
   const snap = state.snapshot;
   const model = modelOf(state);
+  // While the banner is up the GUI shows the last good model, so edits would be path-based against different live text.
+  const readOnly = state.banner !== undefined;
   if (!snap) return <div className="empty">Loading…</div>;
 
   return (
@@ -45,11 +47,11 @@ export function App({ bridge, nonce }: { bridge: Bridge; nonce: string }) {
           </select>
         </label>
         <span className={`schema schema-${snap.schema}`}>schema: {snap.schema}</span>
-        <button className="primary" disabled={snap.running || !model} onClick={() => bridge.send({ type: 'run', selected: 'all' })}>
+        <button className="primary" disabled={snap.running || !model || readOnly} onClick={() => bridge.send({ type: 'run', selected: 'all' })}>
           {snap.running ? 'Running…' : 'Run all cases'}
         </button>
       </header>
-      {state.banner && <div className="banner error">{state.banner} The last valid version is shown until the file parses again.</div>}
+      {state.banner && <div className="banner error">{state.banner} The last valid version is shown read-only. Fix the file in the text editor to edit it here again.</div>}
       {state.notice && (
         <div className={`banner ${state.notice.level}`} onClick={() => dispatch({ kind: 'dismiss' })}>
           {state.notice.message}
@@ -57,7 +59,7 @@ export function App({ bridge, nonce }: { bridge: Bridge; nonce: string }) {
       )}
       {model ? (
         <main className="panels">
-          <RequestPanel model={model} bridge={bridge} nonce={nonce} schemaReady={snap.schema === 'ready'} />
+          <RequestPanel model={model} bridge={bridge} nonce={nonce} schemaReady={snap.schema === 'ready'} readOnly={readOnly} />
           <CasesPanel
             model={model}
             bridge={bridge}
@@ -65,6 +67,7 @@ export function App({ bridge, nonce }: { bridge: Bridge; nonce: string }) {
             onSelect={(i) => dispatch({ kind: 'select', index: i })}
             results={snap.results}
             running={snap.running}
+            readOnly={readOnly}
           />
           <ResultsPanel results={snap.results} selected={state.selectedCase} />
         </main>

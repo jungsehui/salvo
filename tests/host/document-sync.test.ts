@@ -84,6 +84,12 @@ describe('applyFieldEdit', () => {
     if (r.ok) expect(fileOf(r.text).cases?.[0]?.name).toBe('one');
   });
 
+  it('refuses an edit that would turn a valid file invalid', () => {
+    const r = applyFieldEdit(DOC, { kind: 'scalar', path: ['cases', 0, 'name'], value: '' });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/^This change would make the file invalid: /);
+  });
+
   it('refuses to turn a number or a boolean into a string', () => {
     expect(applyFieldEdit(DOC, { kind: 'scalar', path: ['request', 'timeoutMs'], value: 'abc' })).toEqual({
       ok: false,

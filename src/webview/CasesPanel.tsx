@@ -10,6 +10,7 @@ export function CasesPanel({
   onSelect,
   results,
   running,
+  readOnly,
 }: {
   model: GoodView;
   bridge: Bridge;
@@ -17,6 +18,7 @@ export function CasesPanel({
   onSelect: (index: number) => void;
   results: RunResult[] | undefined;
   running: boolean;
+  readOnly: boolean;
 }) {
   const cases = model.file.cases ?? [];
   const kase = cases[selected];
@@ -31,10 +33,10 @@ export function CasesPanel({
               <span className={`dot ${outcomeOf(i)}`} />
               {c.name}
             </button>
-            <button className="icon" title="Run this case" disabled={running} onClick={() => bridge.send({ type: 'run', selected: [i] })}>
+            <button className="icon" title="Run this case" disabled={running || readOnly} onClick={() => bridge.send({ type: 'run', selected: [i] })}>
               ▶
             </button>
-            <button className="icon" title="Remove this case" onClick={() => bridge.send({ type: 'removeCase', index: i })}>
+            <button className="icon" title="Remove this case" disabled={readOnly} onClick={() => bridge.send({ type: 'removeCase', index: i })}>
               ✕
             </button>
           </li>
@@ -52,17 +54,25 @@ export function CasesPanel({
           }
         }}
       >
-        <input name="name" placeholder="New case name" />
-        <button type="submit">Add case</button>
+        <input name="name" placeholder="New case name" disabled={readOnly} />
+        <button type="submit" disabled={readOnly}>
+          Add case
+        </button>
       </form>
       {kase && (
-        <div className="case-detail">
-          <ScalarField label="Name" value={kase.name} onCommit={(v) => bridge.send({ type: 'edit', path: ['cases', selected, 'name'], value: v })} />
+        <div key={selected} className="case-detail">
+          <ScalarField
+            label="Name"
+            value={kase.name}
+            disabled={readOnly}
+            onCommit={(v) => bridge.send({ type: 'edit', path: ['cases', selected, 'name'], value: v })}
+          />
           {Object.entries(kase.vars ?? {}).map(([k, v]) => (
             <ScalarField
               key={k}
               label={`vars.${k}`}
               value={v === null ? '' : String(v)}
+              disabled={readOnly}
               onCommit={(nv) => bridge.send({ type: 'edit', path: ['cases', selected, 'vars', k], value: nv })}
             />
           ))}
