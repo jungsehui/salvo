@@ -23,3 +23,4 @@ tsconfig.test.json
 .vscode-test.mjs
 .vscode/**
 .gitignore
+tsconfig.webview.json

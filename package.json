@@ -63,7 +63,7 @@
   },
   "scripts": {
     "build": "node esbuild.mjs",
-    "check": "tsc --noEmit",
+    "check": "tsc --noEmit && tsc -p tsconfig.webview.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "gen:types": "json2ts -i schemas/salvo-file.schema.json -o src/core/generated/salvo-file.ts && json2ts -i schemas/salvo-manifest.schema.json -o src/core/generated/salvo-manifest.ts",
@@ -76,11 +76,15 @@
     "ajv": "^8.17.1",
     "graphql": "^16.14.2",
     "graphql-language-service": "^5.7.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "yaml": "^2.8.0"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "^20.19.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
     "@types/vscode": "1.110.0",
     "@vscode/test-cli": "^0.0.11",
     "@vscode/test-electron": "^3.1.0",

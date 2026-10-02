@@ -1,0 +1,51 @@
+:root { color-scheme: light dark; }
+body { margin: 0; font-family: var(--vscode-font-family); font-size: var(--vscode-font-size, 13px); color: var(--vscode-foreground); background: var(--vscode-editor-background); }
+.app { display: flex; flex-direction: column; height: 100vh; }
+.toolbar { display: flex; align-items: center; gap: 12px; padding: 6px 12px; border-bottom: 1px solid var(--vscode-panel-border); }
+.brand { font-weight: 600; }
+.env select { margin-left: 6px; }
+.schema { font-size: 11px; opacity: 0.8; }
+.schema-failed { color: var(--vscode-errorForeground); }
+.schema-ready { color: var(--vscode-testing-iconPassed); }
+.toolbar .primary { margin-left: auto; }
+button { color: var(--vscode-button-foreground); background: var(--vscode-button-background); border: 0; padding: 4px 10px; border-radius: 2px; cursor: pointer; font-family: inherit; font-size: inherit; }
+button:hover { background: var(--vscode-button-hoverBackground); }
+button:disabled { opacity: 0.5; cursor: default; }
+button.icon { background: transparent; color: var(--vscode-foreground); padding: 2px 6px; }
+input, select, textarea { color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border, transparent); padding: 3px 6px; font-family: inherit; font-size: inherit; }
+textarea.operation { width: 100%; min-height: 160px; box-sizing: border-box; font-family: var(--vscode-editor-font-family); }
+.banner { padding: 6px 12px; }
+.banner.error { background: var(--vscode-inputValidation-errorBackground); border-bottom: 1px solid var(--vscode-inputValidation-errorBorder); }
+.banner.info { background: var(--vscode-inputValidation-infoBackground); border-bottom: 1px solid var(--vscode-inputValidation-infoBorder); }
+.panels { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 1fr); flex: 1; min-height: 0; }
+.panel { padding: 8px 12px; overflow: auto; border-right: 1px solid var(--vscode-panel-border); }
+.panel:last-child { border-right: 0; }
+h2 { font-size: 13px; margin: 4px 0 8px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8; }
+h3 { font-size: 12px; margin: 10px 0 4px; }
+.field { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.field-label { min-width: 80px; opacity: 0.8; font-size: 12px; }
+.field input { flex: 1; }
+.case-list { list-style: none; padding: 0; margin: 0; }
+.case-list li { display: flex; align-items: center; gap: 2px; }
+.case-list li.selected .case-row { background: var(--vscode-list-activeSelectionBackground); color: var(--vscode-list-activeSelectionForeground); }
+.case-row { flex: 1; text-align: left; background: transparent; color: var(--vscode-foreground); display: flex; align-items: center; gap: 8px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--vscode-descriptionForeground); }
+.dot.passed { background: var(--vscode-testing-iconPassed); }
+.dot.failed, .dot.error { background: var(--vscode-testing-iconFailed); }
+.dot.skipped { background: var(--vscode-testing-iconSkipped); }
+.add-case { display: flex; gap: 6px; margin: 8px 0; }
+.add-case input { flex: 1; }
+.muted { opacity: 0.7; }
+.error { color: var(--vscode-errorForeground); }
+.outcome { font-size: 11px; padding: 1px 6px; border-radius: 8px; margin-left: 8px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); }
+.outcome.passed { background: var(--vscode-testing-iconPassed); color: #fff; }
+.outcome.failed, .outcome.error { background: var(--vscode-testing-iconFailed); color: #fff; }
+table.assertions { border-collapse: collapse; width: 100%; font-size: 12px; margin: 6px 0; }
+table.assertions td, table.assertions th { text-align: left; padding: 2px 6px; border-bottom: 1px solid var(--vscode-panel-border); vertical-align: top; }
+tr.fail td { color: var(--vscode-errorForeground); }
+pre { font-family: var(--vscode-editor-font-family); font-size: 12px; white-space: pre-wrap; word-break: break-word; margin: 4px 0; }
+pre.body { max-height: 60vh; overflow: auto; }
+.empty { padding: 24px; opacity: 0.8; }
+.operation-editor .cm-editor { border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); min-height: 160px; font-size: 12px; }
+.operation-editor .cm-editor.cm-focused { outline: 1px solid var(--vscode-focusBorder); }
+.cm-tooltip pre.hover { margin: 0; padding: 4px 8px; }

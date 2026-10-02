@@ -1,6 +1,6 @@
 import { build } from 'esbuild';
 
-await build({
+const host = build({
   entryPoints: ['src/extension.ts'],
   outfile: 'dist/extension.js',
   bundle: true,
@@ -14,3 +14,19 @@ await build({
   sourcemap: true,
   logLevel: 'info',
 });
+
+const webview = build({
+  entryPoints: ['src/webview/main.tsx'],
+  outfile: 'dist/webview.js',
+  bundle: true,
+  platform: 'browser',
+  target: 'es2022',
+  format: 'iife',
+  jsx: 'automatic',
+  // React's CJS entry switches on this; folding it selects the production build.
+  define: { 'process.env.NODE_ENV': '"production"' },
+  sourcemap: true,
+  logLevel: 'info',
+});
+
+await Promise.all([host, webview]);
