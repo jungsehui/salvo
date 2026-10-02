@@ -76,6 +76,24 @@ describe('applyFieldEdit', () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain('Fix the errors');
   });
+
+  it('stays editable when the YAML is well-formed but fails the schema, so the form can repair it', () => {
+    const bad = DOC.replace('- name: one', '- name: ""');
+    const r = applyFieldEdit(bad, { kind: 'scalar', path: ['cases', 0, 'name'], value: 'one' });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(fileOf(r.text).cases?.[0]?.name).toBe('one');
+  });
+
+  it('refuses to turn a number or a boolean into a string', () => {
+    expect(applyFieldEdit(DOC, { kind: 'scalar', path: ['request', 'timeoutMs'], value: 'abc' })).toEqual({
+      ok: false,
+      error: 'request.timeoutMs holds a number. Enter a number, or change its type in the text editor.',
+    });
+    expect(applyFieldEdit(DOC, { kind: 'scalar', path: ['cases', 0, 'vars', 'verbose'], value: 'maybe' })).toEqual({
+      ok: false,
+      error: 'cases.0.vars.verbose holds true or false. Enter true or false, or change its type in the text editor.',
+    });
+  });
 });
 
 describe('buildDocumentView', () => {

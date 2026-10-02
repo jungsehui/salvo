@@ -1,3 +1,4 @@
+import { parseDocument } from 'yaml';
 import { parseSalvoFile } from '../core/format/parse-salvo-file';
 import { updateScalar } from '../core/format/update-scalar';
 import { appendCase, removeCase } from '../core/format/edit-structure';
@@ -29,28 +30,27 @@ export function coerceLike(current: unknown, raw: string): string | number | boo
   return raw;
 }
 
-function valueAt(root: unknown, path: FieldPath): unknown {
-  let cur: unknown = root;
-  for (const seg of path) {
-    if (cur === null || typeof cur !== 'object') return undefined;
-    cur = (cur as Record<string | number, unknown>)[seg];
-  }
-  return cur;
-}
-
 function nextText(text: string, edit: FieldEdit): { ok: true; text: string } | { ok: false; error: string } {
   switch (edit.kind) {
     case 'scalar': {
-      const parsed = parseSalvoFile(text);
-      if (!parsed.ok) return { ok: false, error: UNPARSABLE };
-      return updateScalar(text, edit.path, coerceLike(valueAt(parsed.file, edit.path), edit.value));
+      // Schema-invalid but well-formed YAML stays editable, so the form can repair what the banner reports.
+      const doc = parseDocument(text);
+      if (doc.errors.length > 0) return { ok: false, error: UNPARSABLE };
+      const current = doc.getIn(edit.path);
+      const value = coerceLike(current, edit.value);
+      if (typeof value === 'string' && (typeof current === 'number' || typeof current === 'boolean')) {
+        const kind = typeof current === 'number' ? 'a number' : 'true or false';
+        return { ok: false, error: `${edit.path.join('.')} holds ${kind}. Enter ${kind}, or change its type in the text editor.` };
+      }
+      return updateScalar(text, edit.path, value);
     }
     case 'operation': {
-      const parsed = parseSalvoFile(text);
-      if (!parsed.ok) return { ok: false, error: UNPARSABLE };
+      // Schema-invalid but well-formed YAML stays editable, so the form can repair what the banner reports.
+      const doc = parseDocument(text);
+      if (doc.errors.length > 0) return { ok: false, error: UNPARSABLE };
+      const current = doc.getIn(['request', 'operation']);
       // A clip-chomped block ('|') ends with '\n'; keep it so the style survives the rewrite (decision 9.5).
-      const current = parsed.file.request.operation;
-      const value = current.endsWith('\n') && !edit.text.endsWith('\n') ? `${edit.text}\n` : edit.text;
+      const value = typeof current === 'string' && current.endsWith('\n') && !edit.text.endsWith('\n') ? `${edit.text}\n` : edit.text;
       return updateScalar(text, ['request', 'operation'], value);
     }
     case 'appendCase':
