@@ -1,4 +1,5 @@
-import { StreamLanguage, type StreamParser } from '@codemirror/language';
+import { HighlightStyle, StreamLanguage, type StreamParser } from '@codemirror/language';
+import { tags } from '@lezer/highlight';
 
 const KEYWORDS = new Set(['query', 'mutation', 'subscription', 'fragment', 'on', 'true', 'false', 'null']);
 
@@ -34,3 +35,17 @@ const parser: StreamParser<object> = {
 };
 
 export const graphqlLanguage = StreamLanguage.define(parser);
+
+const fg = (v: string): string => `var(${v}, var(--vscode-editor-foreground))`;
+
+/** Token colors from the active VS Code theme, so dark, light, and high-contrast themes all stay legible. */
+export const graphqlHighlightStyle = HighlightStyle.define([
+  { tag: tags.keyword, color: fg('--vscode-symbolIcon-keywordForeground') },
+  { tag: tags.typeName, color: fg('--vscode-symbolIcon-classForeground') },
+  { tag: tags.propertyName, color: fg('--vscode-symbolIcon-fieldForeground') },
+  { tag: tags.variableName, color: fg('--vscode-symbolIcon-variableForeground') },
+  { tag: tags.string, color: fg('--vscode-debugTokenExpression-string') },
+  { tag: tags.number, color: fg('--vscode-debugTokenExpression-number') },
+  { tag: tags.meta, color: fg('--vscode-symbolIcon-constantForeground') },
+  { tag: tags.comment, color: fg('--vscode-descriptionForeground'), fontStyle: 'italic' },
+]);

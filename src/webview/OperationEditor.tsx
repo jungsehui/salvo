@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
-import { EditorState, type Extension } from '@codemirror/state';
+import { EditorState, Transaction, type Extension } from '@codemirror/state';
 import { EditorView, hoverTooltip, keymap, lineNumbers, placeholder } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { autocompletion, completionKeymap, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete';
-import { linter, lintKeymap, type Diagnostic } from '@codemirror/lint';
-import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { forceLinting, linter, lintKeymap, type Diagnostic } from '@codemirror/lint';
+import { syntaxHighlighting } from '@codemirror/language';
 import type { TextPosition } from '../shared/protocol';
 import type { Bridge } from './bridge';
-import { graphqlLanguage } from './graphql-stream';
+import { graphqlHighlightStyle, graphqlLanguage } from './graphql-stream';
 
 export interface OperationEditorProps {
   text: string;
@@ -45,13 +45,14 @@ export function OperationEditor({ text, bridge, nonce, schemaReady, onCommit }: 
 
     const complete = async (ctx: CompletionContext): Promise<CompletionResult | null> => {
       if (!latest.current.schemaReady) return null;
-      const word = ctx.matchBefore(/[_A-Za-z0-9]*/);
+      // `$` is part of the variable label the host returns; `@` is not part of directive labels.
+      const word = ctx.matchBefore(/\$?[_A-Za-z0-9]*/);
       if (!word || (word.from === word.to && !ctx.explicit)) return null;
       const items = await latest.current.bridge.complete(ctx.state.doc.toString(), toPosition(ctx.state, ctx.pos));
       return {
         from: word.from,
         options: items.map((i) => ({ label: i.label, detail: i.detail, info: i.documentation })),
-        validFor: /^[_A-Za-z0-9]*$/,
+        validFor: /^\$?[_A-Za-z0-9]*$/,
       };
     };
 
@@ -84,7 +85,7 @@ export function OperationEditor({ text, bridge, nonce, schemaReady, onCommit }: 
       lineNumbers(),
       history(),
       graphqlLanguage,
-      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+      syntaxHighlighting(graphqlHighlightStyle),
       autocompletion({ override: [complete] }),
       linter(lint, { delay: 400 }),
       hover,
@@ -98,11 +99,28 @@ export function OperationEditor({ text, bridge, nonce, schemaReady, onCommit }: 
       }),
       EditorView.theme({
         '&': { backgroundColor: 'var(--vscode-editor-background)', color: 'var(--vscode-editor-foreground)' },
-        '.cm-content': { fontFamily: 'var(--vscode-editor-font-family)' },
+        '.cm-content': {
+          fontFamily: 'var(--vscode-editor-font-family)',
+          caretColor: 'var(--vscode-editorCursor-foreground, var(--vscode-editor-foreground))',
+        },
         '.cm-gutters': {
           backgroundColor: 'var(--vscode-editorGutter-background)',
           color: 'var(--vscode-editorLineNumber-foreground)',
           border: 'none',
+        },
+        '.cm-tooltip': {
+          backgroundColor: 'var(--vscode-editorHoverWidget-background)',
+          color: 'var(--vscode-editorHoverWidget-foreground)',
+          border: '1px solid var(--vscode-editorHoverWidget-border, transparent)',
+        },
+        '.cm-tooltip.cm-tooltip-autocomplete': {
+          backgroundColor: 'var(--vscode-editorSuggestWidget-background)',
+          color: 'var(--vscode-editorSuggestWidget-foreground)',
+          border: '1px solid var(--vscode-editorSuggestWidget-border, transparent)',
+        },
+        '.cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected]': {
+          backgroundColor: 'var(--vscode-editorSuggestWidget-selectedBackground)',
+          color: 'var(--vscode-editorSuggestWidget-selectedForeground, var(--vscode-editorSuggestWidget-foreground))',
         },
       }),
     ];
@@ -115,11 +133,24 @@ export function OperationEditor({ text, bridge, nonce, schemaReady, onCommit }: 
     };
   }, [nonce]);
 
+  // The linter only re-runs on document changes; a schema that becomes ready
+  // (or fails) after mount must refresh the squiggles (or clear them).
+  useEffect(() => {
+    if (view.current) forceLinting(view.current);
+  }, [schemaReady]);
+
   useEffect(() => {
     const v = view.current;
     if (!v) return;
     const current = v.state.doc.toString();
-    if (current !== text) v.dispatch({ changes: { from: 0, to: current.length, insert: text } });
+    // External text stays out of undo history: Ctrl+Z must not restore the pre-external
+    // text, because the next blur would then commit it and silently revert the host's edit.
+    if (current !== text) {
+      v.dispatch({
+        changes: { from: 0, to: current.length, insert: text },
+        annotations: Transaction.addToHistory.of(false),
+      });
+    }
   }, [text]);
 
   return <div ref={host} className="operation-editor" />;
