@@ -48,6 +48,13 @@ describe('appendCase', () => {
     expect(appendCase('sal', 'x').ok).toBe(false);
     expect(appendCase('- a\n', 'x').ok).toBe(false);
   });
+
+  it('leaves an unrelated long line exactly as written', () => {
+    const long = `https://api.example.com/${'segment/'.repeat(12)}graphql`;
+    const text = `salvo: 1\nrequest:\n  url: "${long}"\n  operation: |\n    query { ok }\ncases:\n  - name: a\n`;
+    const r = appendCase(text, 'b');
+    expect(r.ok && r.text.startsWith(`salvo: 1\nrequest:\n  url: "${long}"\n`)).toBe(true);
+  });
 });
 
 describe('removeCase', () => {

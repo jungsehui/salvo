@@ -79,7 +79,7 @@ Salvo reads the schema from a **local SDL file** instead, the kind your build al
 (`autoSchemaFile`, `graphql-codegen`, `rover graph introspect > schema.graphql`). Introspection
 over HTTP stays available as an opt-in, never as the default.
 
-Autocomplete, hover, validation, and go-to-definition come from
+Autocomplete, hover, and validation come from
 [`graphql-language-service`](https://github.com/graphql/graphiql/tree/main/packages/graphql-language-service),
 the GraphQL Foundation's own implementation, called as plain functions. No language server
 process, no `graphql-config` requirement.
@@ -112,9 +112,11 @@ preview button in the editor title, or run `Salvo: Open Visual Editor`.
 Three panels: the request (URL, headers, operation), the cases (add,
 remove, run one, run all), and the selected case's response with its
 assertions. The operation editor completes and validates against your
-schema. Every edit is written back into the same text document as a
-minimal change, so `git diff` stays readable and the text editor can stay
-open next to it.
+schema. Every edit is written back into the same text document as one small range
+edit (comments, key order, and block scalars survive; the first edit may
+normalize indentation), so `git diff` stays readable and the text editor can
+stay open next to it. Expectations (`expect`) are shown read-only; edit them
+in the text editor.
 
 ## Design
 

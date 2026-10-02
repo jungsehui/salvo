@@ -2,18 +2,20 @@
 
 ## 0.1.1 (unreleased)
 
-- Visual editor: open any `.salvo` file with **Reopen With → Salvo Editor**,
+- Visual editor: open any `.salvo` file with **Open With… → Salvo Editor** (or **Reopen Editor With…** on an open tab),
   the editor-title button, or `Salvo: Open Visual Editor`. Edit the URL,
   headers, case names and variables, add or remove cases, run all cases or
   one, and read each case's response and assertions.
 - The operation editor is CodeMirror with schema-driven completion,
   diagnostics, and hover, all computed in the extension host from your local
   SDL (the webview never sees the schema file or the network).
-- Every edit made in the visual editor is a minimal text edit of the same
-  document: comments, key order, and block style survive; undo and save work
-  as usual, and the plain text editor can stay open beside it.
-- Run results are redacted: any resolved secret value is replaced before it
-  reaches the report or the editor.
+- Every edit made in the visual editor is written back into the same text
+  document as one small range edit: comments, key order, block scalars, and
+  untouched long lines survive, and undo and save work as usual. The first
+  edit of a file may normalize its indentation to two spaces.
+- Run results are redacted: every resolved secret value of four or more
+  characters is replaced wherever it appears verbatim, before it reaches the
+  report or the editor.
 - Fixed: operations written with an explicit block indentation indicator
   (`operation: |2`) reported diagnostics at the wrong column.
 

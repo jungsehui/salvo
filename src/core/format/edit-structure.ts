@@ -24,7 +24,8 @@ export function appendCase(text: string, name: string): EditResult {
   } else {
     return { ok: false, error: '"cases" is not a list.' };
   }
-  return { ok: true, text: doc.toString() };
+  // lineWidth 0: never refold lines the edit did not touch (minimal diffs, decision 9.1).
+  return { ok: true, text: doc.toString({ lineWidth: 0 }) };
 }
 
 export function removeCase(text: string, index: number): EditResult {
@@ -37,5 +38,5 @@ export function removeCase(text: string, index: number): EditResult {
     return { ok: false, error: `No case at index ${index}.` };
   }
   cases.delete(index);
-  return { ok: true, text: doc.toString() };
+  return { ok: true, text: doc.toString({ lineWidth: 0 }) };
 }

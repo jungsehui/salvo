@@ -36,7 +36,7 @@ HTTP는 백엔드 엔진만 만들고 GUI를 붙이지 않는다. GraphQL 전송
 
 ### 최소 동작 정의 (이게 되면 v0.1이다)
 
-1. `.salvo` 파일을 열면 Custom Editor로 요청 편집 UI가 뜬다
+1. `.salvo` 파일을 Salvo Editor로 열면(Open With, 에디터 제목 버튼, 커맨드) 요청 편집 UI가 뜬다
 2. `salvo.yaml`의 `schema` 키가 가리키는 로컬 SDL 파일(또는 introspection JSON, opt-in URL)을 읽어 스키마를 로드한다
 3. 쿼리 에디터에서 필드 자동완성, hover, 검증이 동작한다
 4. 케이스 4개(정상/만료/권한없음/토큰없음)를 정의하고 한 번에 실행한다
@@ -55,7 +55,7 @@ HTTP는 백엔드 엔진만 만들고 GUI를 붙이지 않는다. GraphQL 전송
 | ~~스파이크: 246KB SDL 성능 측정~~ **2026-08-21 완료. 위험 아님** | 0h |
 | ~~스파이크: LSP 접합~~ **2026-08-21 완료. 접합 불필요로 판명** | 0h |
 | `.salvo` YAML 스키마 확정 + 파서/직렬화기 + JSON Schema | 20h |
-| 스키마 로더 (graphql-config → SDL / introspection JSON) | 16h |
+| 스키마 로더 (`salvo.yaml` schema → SDL / introspection JSON / opt-in URL) | 16h |
 | `graphql-language-service` 순수 함수 연결 | 10h |
 | 실행 엔진 (GraphQL over HTTP, 변수 치환, SecretResolver/Transport 주입) | 16h |
 | 환경 × 케이스 데이터 모델 + 일괄 실행 + RunStore | 16h |

@@ -16,9 +16,8 @@ against servers with introspection **disabled**, by reading a local SDL file.
   schema docs panel) per `.claude/roadmap.md`.
 - **Marketplace ID**: `jungsehui.salvo` (publisher fixed, do not rename).
 - **License**: MIT.
-- **Target**: `engines.vscode`는 사용 API의 최소 버전으로 착수 시 확정
-  (조사 기준 stable은 1.134였으나 그것을 요구할 이유는 없다. Bruno는 ^1.80).
-  Node 20+ 빌드 / macOS first.
+- **Target**: `engines.vscode` `^1.110.0` (`SecretStorage.keys()`가 들어온
+  버전). Node 20+ 빌드 / macOS first.
 
 ## The one-sentence pitch
 
@@ -49,8 +48,8 @@ against servers with introspection **disabled**, by reading a local SDL file.
    `globalState` and `workspaceState` are plaintext. `SecretStorage` has no
    workspace scope, so compose the key yourself.
 4. **Introspection is not a fallback path, it is an opt-in extra.** The
-   primary schema source is a local SDL file. Linkareer's servers hardcode
-   `introspection: false` with no `NODE_ENV` branch.
+   primary schema source is a local SDL file. Many production servers
+   hardcode `introspection: false`.
 5. **No account, no login, no telemetry.** Not "off by default". Absent.
    This is a stated differentiator, see `.claude/research.md`.
 6. **Generic by design. This is a global tool, not a company tool.**

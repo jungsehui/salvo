@@ -1,20 +1,25 @@
 # Conventions: DO and DON'T
 
 `custom-intellij-nav`에서 검증된 규칙과, 조사에서 확인된 VS Code API 제약에서
-도출한 규칙이다. v0.1 코드는 전부 이 규칙 아래에서 작성됐다.
+도출한 규칙이다. v0.1 코드는 이 규칙을 기준으로 작성했고, 구현하면서 바뀐
+규칙은 해당 항목에 반영했다.
 
 ## DO
 
-- **`extension.ts`를 얇게 유지한다.** 진입점은 커맨드 등록과 subscription
-  push만 한다. 로직은 `format/`, `http/`, `graphql/`, `runner/` 등으로 간다.
+- **`extension.ts`와 `editor-provider.ts`만 `vscode`를 import 한다.** 둘은 VS Code
+  API 어댑터와 등록만 맡고, 로직은 `src/core`와 `src/host`의 vscode 없는 모듈로
+  보낸다(순도 가드 테스트가 강제한다).
 - **순수 함수를 기본으로 쓴다.** 포맷 파서, 어서션 평가기, 스키마 변환은
   `vscode` 상태를 만지지 않는다. 입력을 받아 출력을 낸다. 테스트가 쉬워지고
   webview 쪽에서 재사용할 여지가 생긴다.
-- **크로스 모듈 타입은 `src/types.ts` 한 곳에 둔다.** 순환 타입 임포트를 막는다.
+- **런타임 타입은 `src/core/types.ts`, webview와 주고받는 타입은
+  `src/shared/protocol.ts`에 둔다.** 파일 포맷 타입은 JSON Schema에서 생성한다
+  (`src/core/generated/`).
 - **네트워크 호출은 extension host에서만 한다.** webview는 `postMessage`로
   요청하고 결과를 받는다. 이유는 `architecture.md` 결정 1.
 - **시크릿은 `SecretStorage`에만 쓴다.** 키는
-  `${workspaceFolderUri}::${environmentId}::${varName}` 형태로 직접 합성한다.
+  `salvo/v1/${projectId}/${envName}/${name}` 형태로 합성하고 각 부분을 URL
+  인코딩한다(`src/host/secrets.ts`). `projectId`는 `salvo.yaml`의 `id`다.
   `SecretStorage`에 워크스페이스 스코프가 없기 때문이다.
 - **package.json을 바꾸면 patch 버전을 올린다.** 문구 수정이라도. VS Code가
   익스텐션을 공격적으로 캐시해서, 버전 없이 같은 VSIX를 설치하면 반영이

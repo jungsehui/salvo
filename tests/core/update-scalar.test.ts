@@ -61,4 +61,10 @@ describe('updateScalar', () => {
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.text).toContain('"200"');
   });
+
+  it('never refolds an unrelated long line', () => {
+    const long = `https://api.example.com/${'segment/'.repeat(12)}graphql`;
+    const text = `salvo: 1\nrequest:\n  url: "${long}"\n  timeoutMs: 5000\n`;
+    expect(updateScalar(text, ['request', 'timeoutMs'], 7000)).toEqual({ ok: true, text: text.replace('5000', '7000') });
+  });
 });

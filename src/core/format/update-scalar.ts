@@ -21,5 +21,6 @@ export function updateScalar(
     return { ok: true, text }; // untouched: byte-identical output
   }
   doc.setIn(path, value);
-  return { ok: true, text: doc.toString() };
+  // lineWidth 0: never refold lines the edit did not touch (minimal diffs, decision 9.1).
+  return { ok: true, text: doc.toString({ lineWidth: 0 }) };
 }
