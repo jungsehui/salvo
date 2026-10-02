@@ -2384,13 +2384,14 @@ export class SalvoEditorProvider implements vscode.CustomTextEditorProvider {
       post({ type: 'state', snapshot });
     };
 
-    const applyEdit = async (edit: FieldEdit): Promise<void> => {
+    /** Applies one intent; true when the document actually changed. */
+    const applyEdit = async (edit: FieldEdit): Promise<boolean> => {
       const result = applyFieldEdit(document.getText(), edit);
       if (!result.ok) {
         post({ type: 'notice', level: 'error', message: result.error });
-        return;
+        return false;
       }
-      if (!result.replace) return;
+      if (!result.replace) return false;
       const we = new vscode.WorkspaceEdit();
       we.replace(
         document.uri,
@@ -2400,12 +2401,23 @@ export class SalvoEditorProvider implements vscode.CustomTextEditorProvider {
       guard.markOwn(result.text);
       if (!(await vscode.workspace.applyEdit(we))) {
         post({ type: 'notice', level: 'error', message: 'The edit could not be applied.' });
-        return;
+        return false;
       }
       // The echo guard swallows the change event of our own edit, so push the
       // new snapshot here. Without it an added or removed case never reaches
       // the panel that asked for it (ruling 2026-10-02).
       await pushState();
+      return true;
+    };
+
+    // Edits run one at a time, each computed from the text the previous one
+    // produced: a double-clicked "Add case" must not compute twice from the
+    // same text and then apply at stale offsets (ruling 2026-10-02).
+    let editQueue: Promise<unknown> = Promise.resolve();
+    const enqueueEdit = (edit: FieldEdit): Promise<boolean> => {
+      const next = editQueue.then(() => applyEdit(edit));
+      editQueue = next.catch(() => undefined);
+      return next;
     };
 
     const onMessage = async (raw: unknown): Promise<void> => {
@@ -2414,13 +2426,19 @@ export class SalvoEditorProvider implements vscode.CustomTextEditorProvider {
         case 'ready':
           return pushState();
         case 'edit':
-          return applyEdit({ kind: 'scalar', path: raw.path, value: raw.value });
+          await enqueueEdit({ kind: 'scalar', path: raw.path, value: raw.value });
+          return;
         case 'editOperation':
-          return applyEdit({ kind: 'operation', text: raw.text });
+          await enqueueEdit({ kind: 'operation', text: raw.text });
+          return;
         case 'appendCase':
-          return applyEdit({ kind: 'appendCase', name: raw.name });
+          await enqueueEdit({ kind: 'appendCase', name: raw.name });
+          return;
         case 'removeCase':
-          return applyEdit({ kind: 'removeCase', index: raw.index });
+          // Results are keyed by case index and a removal shifts every later
+          // case, so drop this document's results instead of mislabelling them.
+          if (await enqueueEdit({ kind: 'removeCase', index: raw.index })) this.services.runStore.clear(key);
+          return;
         case 'run':
           return this.services.run(document, raw.selected);
         case 'selectEnvironment':
@@ -2443,7 +2461,11 @@ export class SalvoEditorProvider implements vscode.CustomTextEditorProvider {
     };
 
     const subscriptions: vscode.Disposable[] = [
-      panel.webview.onDidReceiveMessage((m: unknown) => void onMessage(m)),
+      panel.webview.onDidReceiveMessage((m: unknown) => {
+        onMessage(m).catch((e: unknown) =>
+          post({ type: 'notice', level: 'error', message: `Salvo: ${e instanceof Error ? e.message : String(e)}` })
+        );
+      }),
       vscode.workspace.onDidChangeTextDocument((e) => {
         if (e.document.uri.toString() !== key) return;
         if (guard.isEcho(e.document.getText())) return; // our own WorkspaceEdit (decision 9.2)
