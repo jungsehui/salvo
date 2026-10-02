@@ -1,13 +1,16 @@
 import { useEffect, useRef } from 'react';
-import { EditorState, Transaction, type Extension } from '@codemirror/state';
+import { EditorState, StateEffect, Transaction, type Extension } from '@codemirror/state';
 import { EditorView, hoverTooltip, keymap, lineNumbers, placeholder } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { autocompletion, completionKeymap, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete';
-import { forceLinting, linter, lintKeymap, type Diagnostic } from '@codemirror/lint';
+import { linter, lintKeymap, type Diagnostic } from '@codemirror/lint';
 import { syntaxHighlighting } from '@codemirror/language';
 import type { TextPosition } from '../shared/protocol';
 import type { Bridge } from './bridge';
 import { graphqlHighlightStyle, graphqlLanguage } from './graphql-stream';
+
+/** Dispatched when the schema state changes, so the linter re-runs without a document change. */
+const schemaChanged = StateEffect.define<null>();
 
 export interface OperationEditorProps {
   text: string;
@@ -87,7 +90,10 @@ export function OperationEditor({ text, bridge, nonce, schemaReady, onCommit }: 
       graphqlLanguage,
       syntaxHighlighting(graphqlHighlightStyle),
       autocompletion({ override: [complete] }),
-      linter(lint, { delay: 400 }),
+      linter(lint, {
+        delay: 400,
+        needsRefresh: (u) => u.transactions.some((t) => t.effects.some((e) => e.is(schemaChanged))),
+      }),
       hover,
       keymap.of([...defaultKeymap, ...historyKeymap, ...completionKeymap, ...lintKeymap, indentWithTab]),
       placeholder('query { ... }'),
@@ -133,10 +139,11 @@ export function OperationEditor({ text, bridge, nonce, schemaReady, onCommit }: 
     };
   }, [nonce]);
 
-  // The linter only re-runs on document changes; a schema that becomes ready
-  // (or fails) after mount must refresh the squiggles (or clear them).
+  // The linter only re-arms on document changes; a schema that becomes ready (or fails)
+  // after mount must refresh the squiggles (or clear them). `needsRefresh` on the linter
+  // re-arms it when this effect arrives; `lint` returns [] while the schema is not ready.
   useEffect(() => {
-    if (view.current) forceLinting(view.current);
+    view.current?.dispatch({ effects: schemaChanged.of(null) });
   }, [schemaReady]);
 
   useEffect(() => {
