@@ -36,7 +36,7 @@ export function CasesPanel({
             <button className="icon" title="Run this case" disabled={running || readOnly} onClick={() => bridge.send({ type: 'run', selected: [i] })}>
               ▶
             </button>
-            <button className="icon" title="Remove this case" disabled={readOnly} onClick={() => bridge.send({ type: 'removeCase', index: i })}>
+            <button className="icon" title="Remove this case" disabled={readOnly || running} onClick={() => bridge.send({ type: 'removeCase', index: i })}>
               ✕
             </button>
           </li>

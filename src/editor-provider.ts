@@ -20,6 +20,8 @@ export interface EditorServices {
   run(doc: vscode.TextDocument, selected: number[] | 'all'): Promise<void>;
   lang(): Promise<typeof import('./host/salvo-language')>;
   runStore: RunStore;
+  /** Fires when the environment or the schema cache changes; returns an unsubscribe function. */
+  onProjectChange(listener: () => void): () => void;
 }
 
 /**
@@ -117,9 +119,14 @@ export class SalvoEditorProvider implements vscode.CustomTextEditorProvider {
           await enqueueEdit({ kind: 'appendCase', name: raw.name });
           return;
         case 'removeCase':
+          if (this.services.runStore.get(key)?.running) {
+            post({ type: 'notice', level: 'info', message: 'Wait for the run to finish before removing a case.' });
+            return;
+          }
           // Results are keyed by case index and a removal shifts every later
-          // case, so drop this document's results instead of mislabelling them.
-          if (await enqueueEdit({ kind: 'removeCase', index: raw.index })) this.services.runStore.clear(key);
+          // case, so drop this document's results before the edit lands.
+          this.services.runStore.clear(key);
+          await enqueueEdit({ kind: 'removeCase', index: raw.index });
           return;
         case 'run':
           // A blur-commit followed by a Run click arrives as two messages: let
@@ -129,7 +136,7 @@ export class SalvoEditorProvider implements vscode.CustomTextEditorProvider {
           return this.services.run(document, raw.selected);
         case 'selectEnvironment':
           await this.services.setEnvironment(document, raw.name);
-          return pushState();
+          return; // onProjectChange pushes to every panel, this one included
         case 'lang': {
           const { schema } = await this.services.project(document);
           const l = await this.services.lang();
@@ -158,6 +165,7 @@ export class SalvoEditorProvider implements vscode.CustomTextEditorProvider {
         void pushState();
       }),
       { dispose: this.services.runStore.onChange((changed) => changed === key && void pushState()) },
+      { dispose: this.services.onProjectChange(() => void pushState()) },
     ];
     panel.onDidDispose(() => {
       disposed = true;

@@ -50,6 +50,10 @@ export function activate(context: vscode.ExtensionContext): void {
   const contexts = new Map<string, ProjectContext>();
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
   const runStore = new RunStore();
+  const projectListeners = new Set<() => void>();
+  const notifyProjectChange = (): void => {
+    for (const l of projectListeners) l();
+  };
 
   const isSalvo = (doc: vscode.TextDocument): boolean => vscode.languages.match(SELECTOR, doc) > 0;
 
@@ -174,39 +178,54 @@ export function activate(context: vscode.ExtensionContext): void {
     status.show();
   }
 
-  const requireSalvoEditor = (): vscode.TextEditor | undefined => {
+  /** The .salvo document in front of the user: the active text editor, or the active Salvo visual editor tab. */
+  const requireSalvoDocument = async (): Promise<vscode.TextDocument | undefined> => {
     const editor = vscode.window.activeTextEditor;
-    if (!editor || !isSalvo(editor.document)) {
-      void vscode.window.showInformationMessage('Salvo: open a .salvo file first.');
-      return undefined;
+    if (editor && isSalvo(editor.document)) return editor.document;
+    const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+    if (input instanceof vscode.TabInputCustom && input.viewType === VIEW_TYPE) {
+      return vscode.workspace.openTextDocument(input.uri);
     }
-    return editor;
+    void vscode.window.showInformationMessage('Salvo: open a .salvo file first.');
+    return undefined;
   };
 
   /** One run path for the command and the visual editor: results land in the RunStore, the text report in the output channel. */
   async function runDocument(doc: vscode.TextDocument, selected: number[] | 'all'): Promise<void> {
     const key = doc.uri.toString();
-    const { ctx } = await getProject(doc);
-    const manifest = ctx.located?.manifest;
-    const envName = envFor(ctx) ?? 'default';
-    const secrets = createSecretResolver(context.secrets, manifest?.id ?? 'no-project', envName);
-    const previous = runStore.get(key)?.results ?? [];
-    runStore.setRunning(key);
-    const outcome = await runSalvoFile({
-      fileText: doc.getText(),
-      manifest,
-      envName,
-      selected,
-      deps: { secrets, send: createFetchTransport() },
-    });
-    if (!outcome.ok) {
-      runStore.setResults(key, previous);
-      void vscode.window.showErrorMessage(`Salvo: cannot run — ${outcome.issues[0]?.message ?? 'parse failed'}`);
+    // One run per document: a second run would double-fire the transport and
+    // could overwrite fresh results with stale ones.
+    if (runStore.get(key)?.running) {
+      void vscode.window.showInformationMessage('Salvo: a run is already in progress for this file.');
       return;
     }
-    runStore.setResults(key, selected === 'all' ? outcome.results : mergeResults(previous, outcome.results));
-    output.appendLine('');
-    output.appendLine(outcome.report);
+    const previous = runStore.get(key)?.results ?? [];
+    runStore.setRunning(key); // before any await, so a double click cannot start a second run
+    let next = previous;
+    try {
+      const { ctx } = await getProject(doc);
+      const manifest = ctx.located?.manifest;
+      const envName = envFor(ctx) ?? 'default';
+      const secrets = createSecretResolver(context.secrets, manifest?.id ?? 'no-project', envName);
+      const outcome = await runSalvoFile({
+        fileText: doc.getText(),
+        manifest,
+        envName,
+        selected,
+        deps: { secrets, send: createFetchTransport() },
+      });
+      if (!outcome.ok) {
+        void vscode.window.showErrorMessage(`Salvo: cannot run — ${outcome.issues[0]?.message ?? 'parse failed'}`);
+        return;
+      }
+      next = selected === 'all' ? outcome.results : mergeResults(previous, outcome.results);
+      output.appendLine('');
+      output.appendLine(outcome.report);
+    } finally {
+      // Never leave `running` stuck; a document closed mid-run stays cleared.
+      if (doc.isClosed) runStore.clear(key);
+      else runStore.setResults(key, next);
+    }
   }
 
   async function saveEnvironment(doc: vscode.TextDocument, name: string): Promise<void> {
@@ -216,6 +235,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const saved = context.workspaceState.get<Record<string, string>>(ENV_STATE_KEY, {});
     await context.workspaceState.update(ENV_STATE_KEY, { ...saved, [manifest.id]: name });
     scheduleRefresh(doc);
+    notifyProjectChange();
   }
 
   const services: EditorServices = {
@@ -229,6 +249,10 @@ export function activate(context: vscode.ExtensionContext): void {
     run: runDocument,
     lang,
     runStore,
+    onProjectChange: (l) => {
+      projectListeners.add(l);
+      return () => void projectListeners.delete(l);
+    },
   };
 
   context.subscriptions.push(
@@ -285,16 +309,16 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
 
     vscode.commands.registerCommand('salvo.runCases', async () => {
-      const editor = requireSalvoEditor();
-      if (!editor) return;
-      await runDocument(editor.document, 'all');
+      const doc = await requireSalvoDocument();
+      if (!doc) return;
+      await runDocument(doc, 'all');
       output.show(true);
     }),
 
     vscode.commands.registerCommand('salvo.selectEnvironment', async () => {
-      const editor = requireSalvoEditor();
-      if (!editor) return;
-      const { ctx } = await getProject(editor.document);
+      const doc = await requireSalvoDocument();
+      if (!doc) return;
+      const { ctx } = await getProject(doc);
       const manifest = ctx.located?.manifest;
       const names = Object.keys(manifest?.environments ?? {});
       if (!manifest || names.length === 0) {
@@ -303,14 +327,14 @@ export function activate(context: vscode.ExtensionContext): void {
       }
       const picked = await vscode.window.showQuickPick(names, { placeHolder: 'Salvo environment' });
       if (picked === undefined) return;
-      await saveEnvironment(editor.document, picked);
-      await updateStatus(editor);
+      await saveEnvironment(doc, picked);
+      await updateStatus(vscode.window.activeTextEditor ?? undefined);
     }),
 
     vscode.commands.registerCommand('salvo.setSecret', async () => {
-      const editor = requireSalvoEditor();
-      if (!editor) return;
-      const { ctx } = await getProject(editor.document);
+      const doc = await requireSalvoDocument();
+      if (!doc) return;
+      const { ctx } = await getProject(doc);
       const manifest = ctx.located?.manifest;
       if (!manifest) {
         void vscode.window.showInformationMessage('Salvo: a salvo.yaml with an id is required to store secrets.');
@@ -330,6 +354,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
     vscode.commands.registerCommand('salvo.refreshSchema', async () => {
       contexts.clear();
+      notifyProjectChange();
       const editor = vscode.window.activeTextEditor;
       if (editor) {
         scheduleRefresh(editor.document);
