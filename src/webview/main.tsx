@@ -1,7 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { Bridge } from './bridge';
-import { isSaveShortcut } from './shortcuts';
 import './styles.css';
 
 const vscode = acquireVsCodeApi();
@@ -11,15 +10,11 @@ const nonce = (document.currentScript as HTMLScriptElement | null)?.dataset['non
 const root = document.getElementById('root');
 if (root) createRoot(root).render(<App bridge={bridge} nonce={nonce} />);
 
-// Fields commit on blur. A save shortcut or hiding the panel does not blur
-// them, so blur the focused element first and let the normal commit run.
+// Hiding the panel does not blur the focused field; blur it so the normal commit runs. (The save shortcut is handled by each field without blurring.)
 const flushDrafts = (): void => {
   const el = document.activeElement;
   if (el instanceof HTMLElement) el.blur();
 };
-window.addEventListener('keydown', (e) => {
-  if (isSaveShortcut(e)) flushDrafts();
-}, true);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') flushDrafts();
 });

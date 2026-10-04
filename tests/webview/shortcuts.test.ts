@@ -9,4 +9,9 @@ describe('isSaveShortcut', () => {
     expect(isSaveShortcut({ key: 's', metaKey: true, ctrlKey: false, altKey: true })).toBe(false);
     expect(isSaveShortcut({ key: 'a', metaKey: true, ctrlKey: false, altKey: false })).toBe(false);
   });
+
+  it('recognizes the physical S key under a non-Latin input method', () => {
+    expect(isSaveShortcut({ key: 'ㄴ', code: 'KeyS', metaKey: true, ctrlKey: false, altKey: false })).toBe(true);
+    expect(isSaveShortcut({ key: 'ㄴ', code: 'KeyS', metaKey: false, ctrlKey: false, altKey: false })).toBe(false);
+  });
 });

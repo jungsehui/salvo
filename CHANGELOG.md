@@ -13,13 +13,15 @@
   document as one small range edit: comments, key order, block scalars, and
   untouched long lines survive, and undo and save work as usual. The first
   edit of a file may normalize its indentation, comment spacing, and hand-wrapped plain scalars.
-- Saving with Cmd/Ctrl+S or switching away from the editor commits the field
-  you are typing in.
+- Saving with Cmd/Ctrl+S commits the field you are typing in and keeps the
+  cursor there; switching away from the editor commits it too.
 - Run results are redacted: every resolved secret value of four or more
   characters is replaced wherever it appears verbatim, before it reaches the
   report or the editor.
 - Fixed: operations written with an explicit block indentation indicator
   (`operation: |2`) reported diagnostics at the wrong column.
+- The quickstart example now ships the demo API's schema as a local SDL file,
+  so completions and checks work as soon as you open it.
 
 ## 0.1.0
 

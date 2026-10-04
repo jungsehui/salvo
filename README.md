@@ -114,9 +114,9 @@ remove, run one, run all), and the selected case's response with its
 assertions. The operation editor completes and validates against your
 schema. Every edit is written back into the same text document as one small range
 edit (comments, key order, and block scalars survive; the first edit may
-normalize indentation and comment spacing), so `git diff` stays readable and the text editor can
-stay open next to it. Expectations (`expect`) are shown read-only; edit them
-in the text editor.
+normalize indentation, comment spacing, and hand-wrapped plain scalars), so
+`git diff` stays readable and the text editor can stay open next to it.
+Expectations (`expect`) are shown read-only; edit them in the text editor.
 
 ## Design
 

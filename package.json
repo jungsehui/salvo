@@ -1,8 +1,8 @@
 {
   "name": "salvo",
-  "displayName": "Salvo",
+  "displayName": "Salvo: API Testing with Cases",
   "icon": "media/icon.png",
-  "description": "A file-first API client for VS Code: one request, many named cases",
+  "description": "Test the APIs behind your web and mobile apps from VS Code: one request, many named cases, each with its own expectations. GraphQL over HTTP today, with the schema read from a local SDL file; more protocols are on the roadmap.",
   "version": "0.1.1",
   "license": "MIT",
   "publisher": "jungsehui",
@@ -18,6 +18,15 @@
   "categories": [
     "Programming Languages",
     "Testing"
+  ],
+  "keywords": [
+    "api client",
+    "api testing",
+    "graphql",
+    "http",
+    "test cases",
+    "sdl",
+    "introspection"
   ],
   "activationEvents": [
     "workspaceContains:**/*.salvo",

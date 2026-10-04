@@ -7,7 +7,9 @@ import { linter, lintKeymap, type Diagnostic } from '@codemirror/lint';
 import { syntaxHighlighting } from '@codemirror/language';
 import type { TextPosition } from '../shared/protocol';
 import type { Bridge } from './bridge';
+import { consumeEcho } from './echo';
 import { graphqlHighlightStyle, graphqlLanguage } from './graphql-stream';
+import { isSaveShortcut } from './shortcuts';
 
 /** Dispatched when the schema state changes, so the linter re-runs without a document change. */
 const schemaChanged = StateEffect.define<null>();
@@ -41,6 +43,16 @@ export function OperationEditor({ text, bridge, nonce, schemaReady, onCommit }: 
   // Callbacks and flags read at event time; a ref keeps the extensions stable across renders.
   const latest = useRef({ text, bridge, schemaReady, onCommit });
   latest.current = { text, bridge, schemaReady, onCommit };
+  // Commits on their way back from the host (the host may append a newline for a | block).
+  const pending = useRef<string[]>([]);
+  const commitText = (current: string): void => {
+    if (current === latest.current.text) return;
+    pending.current.push(current);
+    latest.current.onCommit(current);
+  };
+  // Read at event time: the mount effect below runs once and must not capture a stale helper.
+  const commitRef = useRef(commitText);
+  commitRef.current = commitText;
 
   useEffect(() => {
     const parent = host.current;
@@ -98,10 +110,7 @@ export function OperationEditor({ text, bridge, nonce, schemaReady, onCommit }: 
       keymap.of([...defaultKeymap, ...historyKeymap, ...completionKeymap, ...lintKeymap, indentWithTab]),
       placeholder('query { ... }'),
       EditorView.domEventHandlers({
-        blur: (_event, v) => {
-          const current = v.state.doc.toString();
-          if (current !== latest.current.text) latest.current.onCommit(current);
-        },
+        blur: (_event, v) => commitRef.current(v.state.doc.toString()),
       }),
       EditorView.theme({
         '&': { backgroundColor: 'var(--vscode-editor-background)', color: 'var(--vscode-editor-foreground)' },
@@ -145,7 +154,13 @@ export function OperationEditor({ text, bridge, nonce, schemaReady, onCommit }: 
 
     const v = new EditorView({ state: EditorState.create({ doc: latest.current.text, extensions }), parent });
     view.current = v;
+    // Save without blurring: the caret stays put and typing can continue.
+    const onKey = (e: KeyboardEvent): void => {
+      if (isSaveShortcut(e) && v.hasFocus) commitRef.current(v.state.doc.toString());
+    };
+    window.addEventListener('keydown', onKey, true);
     return () => {
+      window.removeEventListener('keydown', onKey, true);
       v.destroy();
       view.current = undefined;
     };
@@ -161,6 +176,9 @@ export function OperationEditor({ text, bridge, nonce, schemaReady, onCommit }: 
   useEffect(() => {
     const v = view.current;
     if (!v) return;
+    // Our own commit echoing back (possibly with the block scalar's trailing newline):
+    // keep the document, which may already hold keystrokes typed after the commit.
+    if (consumeEcho(pending.current, text, (sent, got) => got === sent || got === `${sent}\n`)) return;
     const current = v.state.doc.toString();
     // External text stays out of undo history: Ctrl+Z must not restore the pre-external
     // text, because the next blur would then commit it and silently revert the host's edit.
