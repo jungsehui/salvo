@@ -23,7 +23,10 @@ export function ScalarField({
     setDraft(value);
   }, [value]);
   const commit = (next: string): void => {
-    if (next === value) return;
+    // Compare with what the host will hold once in-flight commits land, not the stale prop:
+    // reverting to the old value before the echo must still be sent.
+    const baseline = pending.current.at(-1) ?? value;
+    if (next === baseline) return;
     pending.current.push(next);
     onCommit(next);
   };

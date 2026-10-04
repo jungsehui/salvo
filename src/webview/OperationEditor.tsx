@@ -46,7 +46,9 @@ export function OperationEditor({ text, bridge, nonce, schemaReady, onCommit }: 
   // Commits on their way back from the host (the host may append a newline for a | block).
   const pending = useRef<string[]>([]);
   const commitText = (current: string): void => {
-    if (current === latest.current.text) return;
+    // Compare with what the host will hold once in-flight commits land, not the stale prop.
+    const baseline = pending.current.at(-1) ?? latest.current.text;
+    if (current === baseline) return;
     pending.current.push(current);
     latest.current.onCommit(current);
   };
