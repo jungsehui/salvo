@@ -180,7 +180,8 @@ export function OperationEditor({ text, bridge, nonce, schemaReady, onCommit }: 
     if (!v) return;
     // Our own commit echoing back (possibly with the block scalar's trailing newline):
     // keep the document, which may already hold keystrokes typed after the commit.
-    if (consumeEcho(pending.current, text, (sent, got) => got === sent || got === `${sent}\n`)) return;
+    if (v.hasFocus && consumeEcho(pending.current, text, (sent, got) => got === sent || got === `${sent}\n`)) return;
+    pending.current = [];
     const current = v.state.doc.toString();
     // External text stays out of undo history: Ctrl+Z must not restore the pre-external
     // text, because the next blur would then commit it and silently revert the host's edit.

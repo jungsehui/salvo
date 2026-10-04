@@ -19,7 +19,9 @@ export function ScalarField({
   // Commits still on their way back from the host; their echo must not reset the draft.
   const pending = useRef<string[]>([]);
   useEffect(() => {
-    if (consumeEcho(pending.current, value)) return;
+    // Only a focused field can hold keystrokes typed after its own commit.
+    if (document.activeElement === input.current && consumeEcho(pending.current, value)) return;
+    pending.current = [];
     setDraft(value);
   }, [value]);
   const commit = (next: string): void => {

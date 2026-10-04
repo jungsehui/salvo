@@ -18,4 +18,11 @@ describe('quickstart example', () => {
     const errors = collectDiagnostics(read('countries.salvo'), schema).filter((i) => i.severity === 'error');
     expect(errors).toEqual([]);
   });
+
+  it('would catch a broken example (the check is not vacuous)', () => {
+    const schema = buildSchema(read('countries.graphql'));
+    const broken = read('countries.salvo').replace('name\n', 'nmae\n');
+    expect(broken).not.toBe(read('countries.salvo'));
+    expect(collectDiagnostics(broken, schema).some((i) => i.severity === 'error')).toBe(true);
+  });
 });
