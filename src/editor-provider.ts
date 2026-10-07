@@ -115,6 +115,12 @@ export class SalvoEditorProvider implements vscode.CustomTextEditorProvider {
         case 'editOperation':
           await enqueueEdit({ kind: 'operation', text: raw.text });
           return;
+        case 'setMethod':
+          await enqueueEdit({ kind: 'method', method: raw.method });
+          return;
+        case 'editJsonBody':
+          await enqueueEdit({ kind: 'jsonBody', text: raw.text });
+          return;
         case 'appendCase':
           await enqueueEdit({ kind: 'appendCase', name: raw.name });
           return;

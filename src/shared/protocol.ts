@@ -1,5 +1,6 @@
 import type { SalvoFile } from '../core/generated/salvo-file';
 import type { ParseIssue, RunResult } from '../core/types';
+import { isHttpMethod, type HttpMethod } from './request-kind';
 
 /**
  * Types shared by the extension host, the core, and the webview. This file
@@ -54,7 +55,9 @@ export type WebviewToHost =
   | { type: 'run'; selected: number[] | 'all' }
   | { type: 'selectEnvironment'; name: string }
   | { type: 'lang'; id: number; op: 'complete' | 'hover'; text: string; pos: TextPosition }
-  | { type: 'lang'; id: number; op: 'lint'; text: string };
+  | { type: 'lang'; id: number; op: 'lint'; text: string }
+  | { type: 'setMethod'; method: HttpMethod }
+  | { type: 'editJsonBody'; text: string };
 
 export type HostToWebview =
   | { type: 'state'; snapshot: EditorSnapshot }
@@ -91,6 +94,10 @@ export function isWebviewMessage(x: unknown): x is WebviewToHost {
       if (x['op'] === 'lint') return true;
       return (x['op'] === 'complete' || x['op'] === 'hover') && isPos(x['pos']);
     }
+    case 'setMethod':
+      return isHttpMethod(x['method']);
+    case 'editJsonBody':
+      return typeof x['text'] === 'string';
     default:
       return false;
   }

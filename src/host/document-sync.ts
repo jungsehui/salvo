@@ -1,15 +1,18 @@
-import { parseDocument } from 'yaml';
+import { isCollection, isMap, isNode, parseDocument } from 'yaml';
 import { parseSalvoFile } from '../core/format/parse-salvo-file';
 import { updateScalar } from '../core/format/update-scalar';
 import { appendCase, removeCase } from '../core/format/edit-structure';
 import { minimalTextEdit, type TextReplace } from '../core/format/minimal-edit';
 import type { DocumentView, FieldPath } from '../shared/protocol';
+import type { HttpMethod } from '../shared/request-kind';
 
 export type FieldEdit =
   | { kind: 'scalar'; path: FieldPath; value: string }
   | { kind: 'operation'; text: string }
   | { kind: 'appendCase'; name: string }
-  | { kind: 'removeCase'; index: number };
+  | { kind: 'removeCase'; index: number }
+  | { kind: 'method'; method: HttpMethod }
+  | { kind: 'jsonBody'; text: string };
 
 export type ApplyResult = { ok: true; text: string; replace?: TextReplace } | { ok: false; error: string };
 
@@ -52,6 +55,36 @@ function nextText(text: string, edit: FieldEdit): { ok: true; text: string } | {
       // A clip-chomped block ('|') ends with '\n'; keep it so the style survives the rewrite (decision 9.5).
       const value = typeof current === 'string' && current.endsWith('\n') && !edit.text.endsWith('\n') ? `${edit.text}\n` : edit.text;
       return updateScalar(text, ['request', 'operation'], value);
+    }
+    case 'method': {
+      const doc = parseDocument(text, { keepSourceTokens: true });
+      if (doc.errors.length > 0) return { ok: false, error: UNPARSABLE };
+      const path = ['request', 'method'];
+      if (doc.hasIn(path)) return updateScalar(text, path, edit.method);
+      // The one key the GUI may create: an HTTP request without `method` relies on the GET default.
+      if (!isMap(doc.getIn(['request'], true))) return { ok: false, error: 'request is not a mapping.' };
+      doc.setIn(path, edit.method);
+      return { ok: true, text: doc.toString({ lineWidth: 0 }) };
+    }
+    case 'jsonBody': {
+      let value: unknown;
+      try {
+        value = JSON.parse(edit.text);
+      } catch (e) {
+        return { ok: false, error: `The body is not valid JSON: ${e instanceof Error ? e.message : String(e)}` };
+      }
+      const doc = parseDocument(text, { keepSourceTokens: true });
+      if (doc.errors.length > 0) return { ok: false, error: UNPARSABLE };
+      const path = ['request', 'body', 'json'];
+      if (!doc.hasIn(path)) return { ok: false, error: 'request.body.json is missing; add it in the text editor.' };
+      const current = doc.getIn(path, true);
+      const currentValue = isNode(current) ? current.toJSON() : current;
+      if (JSON.stringify(currentValue) === JSON.stringify(value)) return { ok: true, text };
+      // Build the node explicitly so a body written in flow style ({ ... }) stays in flow style.
+      const node = doc.createNode(value);
+      if (isCollection(current) && current.flow === true && isCollection(node)) node.flow = true;
+      doc.setIn(path, node);
+      return { ok: true, text: doc.toString({ lineWidth: 0 }) };
     }
     case 'appendCase':
       return appendCase(text, edit.name);
