@@ -124,6 +124,11 @@ OPTIONS, `query` parameters, headers, `json`, `text` and `form` bodies, and
 parameter, field, or property out (array elements keep `null`). File uploads,
 OAuth2, and AWS signing come in later releases.
 
+Put secrets in `query`, headers, or the body rather than inline in `url`:
+results and reports redact them there, including their encoded forms.
+`auth.basic` replaces any `Authorization` header that comes from the
+environment.
+
 ## What it will not do
 
 Saying no is part of the design. Each of these is a deliberate exclusion with a reason.
