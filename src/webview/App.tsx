@@ -1,5 +1,6 @@
 import { useEffect, useReducer } from 'react';
 import type { HostToWebview } from '../shared/protocol';
+import { isGraphqlRequest } from '../shared/request-kind';
 import type { Bridge } from './bridge';
 import { dismissNotice, initialState, modelOf, reduce, selectCase, type WebviewState } from './state';
 import { RequestPanel } from './RequestPanel';
@@ -30,6 +31,8 @@ export function App({ bridge, nonce }: { bridge: Bridge; nonce: string }) {
   const model = modelOf(state);
   // While the banner is up the GUI shows the last good model, so edits would be path-based against different live text.
   const readOnly = state.banner !== undefined;
+  // HTTP files have no GraphQL schema, so the badge would only confuse.
+  const graphql = model ? isGraphqlRequest(model.file.request) : true;
   if (!snap) return <div className="empty">Loading…</div>;
 
   return (
@@ -46,7 +49,7 @@ export function App({ bridge, nonce }: { bridge: Bridge; nonce: string }) {
             {snap.envNames.length === 0 ? <option value="">none</option> : snap.envNames.map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         </label>
-        <span className={`schema schema-${snap.schema}`}>schema: {snap.schema}</span>
+        {graphql && <span className={`schema schema-${snap.schema}`}>schema: {snap.schema}</span>}
         <button className="primary" disabled={snap.running || !model || readOnly} onClick={() => bridge.send({ type: 'run', selected: 'all' })}>
           {snap.running ? 'Running…' : 'Run all cases'}
         </button>

@@ -2,20 +2,29 @@ import { useEffect, useRef, useState } from 'react';
 import { consumeEcho } from './echo';
 import { isSaveShortcut } from './shortcuts';
 
-/** Text input that commits on blur, Enter, or the save shortcut, and follows external changes to `value`. */
+/**
+ * Text input (or text area) that commits on blur, Enter (single line only), or
+ * the save shortcut, and follows external changes to `value`. `normalize`
+ * rewrites the draft before it is sent, so the host's echo of a normalized
+ * value still matches the pending commit.
+ */
 export function ScalarField({
   label,
   value,
   onCommit,
   disabled,
+  multiline,
+  normalize,
 }: {
   label: string;
   value: string;
   onCommit: (next: string) => void;
   disabled?: boolean;
+  multiline?: boolean;
+  normalize?: (draft: string) => string;
 }) {
   const [draft, setDraft] = useState(value);
-  const input = useRef<HTMLInputElement | null>(null);
+  const input = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
   // Commits still on their way back from the host; their echo must not reset the draft.
   const pending = useRef<string[]>([]);
   useEffect(() => {
@@ -24,7 +33,8 @@ export function ScalarField({
     pending.current = [];
     setDraft(value);
   }, [value]);
-  const commit = (next: string): void => {
+  const commit = (raw: string): void => {
+    const next = normalize ? normalize(raw) : raw;
     // Compare with what the host will hold once in-flight commits land, not the stale prop:
     // reverting to the old value before the echo must still be sent.
     const baseline = pending.current.at(-1) ?? value;
@@ -43,22 +53,36 @@ export function ScalarField({
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
   }, []);
+  const bind = (el: HTMLInputElement | HTMLTextAreaElement | null): void => {
+    input.current = el;
+  };
   return (
     <label className="field">
       <span className="field-label">{label}</span>
-      <input
-        ref={input}
-        value={draft}
-        disabled={disabled}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => commit(draft)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            commit(draft);
-          }
-        }}
-      />
+      {multiline ? (
+        <textarea
+          ref={bind}
+          value={draft}
+          disabled={disabled}
+          spellCheck={false}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => commit(draft)}
+        />
+      ) : (
+        <input
+          ref={bind}
+          value={draft}
+          disabled={disabled}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => commit(draft)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commit(draft);
+            }
+          }}
+        />
+      )}
     </label>
   );
 }

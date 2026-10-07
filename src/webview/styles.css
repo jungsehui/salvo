@@ -50,3 +50,5 @@ pre.body { max-height: 60vh; overflow: auto; }
 .cm-tooltip pre.hover { margin: 0; padding: 4px 8px; }
 input:disabled { opacity: 0.6; }
 .operation-readonly { border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); padding: 6px 8px; min-height: 160px; opacity: 0.85; }
+.field textarea { flex: 1; min-height: 6em; font-family: var(--vscode-editor-font-family); resize: vertical; }
+.field-group { margin-top: 8px; }
