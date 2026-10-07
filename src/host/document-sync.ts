@@ -83,6 +83,11 @@ function nextText(text: string, edit: FieldEdit): { ok: true; text: string } | {
       // Build the node explicitly so a body written in flow style ({ ... }) stays in flow style.
       const node = doc.createNode(value);
       if (isCollection(current) && current.flow === true && isCollection(node)) node.flow = true;
+      // setIn swaps the whole node; carry over the comments that sit on the value's own line.
+      if (isNode(current)) {
+        if (current.comment) node.comment = current.comment;
+        if (current.commentBefore) node.commentBefore = current.commentBefore;
+      }
       doc.setIn(path, node);
       return { ok: true, text: doc.toString({ lineWidth: 0 }) };
     }

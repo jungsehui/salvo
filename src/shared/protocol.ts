@@ -4,8 +4,9 @@ import { isHttpMethod, type HttpMethod } from './request-kind';
 
 /**
  * Types shared by the extension host, the core, and the webview. This file
- * must stay dependency-free: the webview bundle imports it, and the purity
- * guard forbids anything but type imports here.
+ * must stay dependency-free: the webview bundle imports it, so it takes only
+ * type imports from core and host, and runtime imports only from sibling
+ * shared modules (enforced by the purity guard).
  */
 
 /** 0-based position inside an operation text (CodeMirror's coordinate space). */
