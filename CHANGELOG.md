@@ -8,8 +8,8 @@
   Cases, environments, secrets, and expectations work exactly as for GraphQL.
 - Inside a JSON body, a value that is exactly one `{{var}}` keeps the
   variable's type (numbers stay numbers). A `null` value leaves its header,
-  query parameter, form field, or JSON property out, so a "no token" case can
-  omit the Authorization header.
+  query parameter, form field, or JSON property out (array elements keep
+  `null`), so a "no token" case can omit the Authorization header.
 - The visual editor shows HTTP requests with a method picker and fields for
   the query, headers, body, and Basic auth.
 - The quickstart gains two httpbin.org examples (bearer token and Basic auth).

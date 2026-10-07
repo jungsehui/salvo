@@ -117,11 +117,12 @@ cases:
     expect: { status: 401 }
 ```
 
-Supported today: every method, `query` parameters, headers, `json`, `text`
-and `form` bodies, and `auth: { basic: ... }`. Inside a JSON body, a value that
-is exactly one `{{var}}` keeps the variable's type, and a `null` value leaves
-its header, parameter, field, or property out. File uploads, OAuth2, and AWS
-signing come in later releases.
+Supported today: the methods GET, POST, PUT, PATCH, DELETE, HEAD, and
+OPTIONS, `query` parameters, headers, `json`, `text` and `form` bodies, and
+`auth: { basic: ... }`. Inside a JSON body, a value that is exactly one
+`{{var}}` keeps the variable's type, and a `null` value leaves its header,
+parameter, field, or property out (array elements keep `null`). File uploads,
+OAuth2, and AWS signing come in later releases.
 
 ## What it will not do
 
