@@ -61,6 +61,10 @@ function mergeJson(doc: Document, current: unknown, value: unknown): unknown {
     for (const [key, v] of Object.entries(value)) {
       current.set(key, current.has(key) ? mergeJson(doc, current.get(key, true), v) : doc.createNode(v));
     }
+    // Follow the edited key order, so the host's echo matches the committed text.
+    const order = Object.keys(value);
+    const keyOf = (pair: (typeof current.items)[number]): string => String(isScalar(pair.key) ? pair.key.value : pair.key);
+    current.items.sort((a, b) => order.indexOf(keyOf(a)) - order.indexOf(keyOf(b)));
     return current;
   }
   if (isSeq(current) && Array.isArray(value) && current.items.length === value.length) {
