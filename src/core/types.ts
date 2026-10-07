@@ -1,17 +1,44 @@
 /** Runtime types. File-format types live in src/core/generated/ (JSON Schema is the source). */
 
+import type { HttpMethod } from '../shared/request-kind';
+
+export type { HttpMethod };
+
 export type Primitive = string | number | boolean | null;
+
+/** GraphQL-over-HTTP payload; the transport serializes it as JSON. `kind` is optional so the 0.1 shape stays valid. */
+export interface GraphqlPayload {
+  kind?: 'graphql';
+  query: string;
+  variables?: Record<string, unknown>;
+  operationName?: string;
+}
+
+/** An HTTP body the request builder already encoded. */
+export interface EncodedBody {
+  kind: 'encoded';
+  text: string;
+  query?: never;
+  variables?: never;
+  operationName?: never;
+}
+
+/** No body: GET and HEAD, or an HTTP request without `body`. */
+export interface NoBody {
+  kind: 'none';
+  query?: never;
+  variables?: never;
+  operationName?: never;
+}
+
+export type RequestBody = GraphqlPayload | EncodedBody | NoBody;
 
 /** Post-substitution, ready-to-send request. Never persisted. */
 export interface ResolvedRequest {
-  method: 'POST';
+  method: HttpMethod;
   url: string;
-  headers: Record<string, string>;
-  body: {
-    query: string;
-    variables?: Record<string, unknown>;
-    operationName?: string;
-  };
+  headers: Record<string, string>; // lower-cased keys
+  body: RequestBody;
   timeoutMs: number;
 }
 

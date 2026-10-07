@@ -2,9 +2,8 @@ import type { SalvoFile } from '../generated/salvo-file';
 import type { EnvironmentDef } from '../generated/salvo-manifest';
 import type { Primitive, ResolvedRequest, SecretResolver } from '../types';
 import { isGraphqlRequest } from '../../shared/request-kind';
-
-const PLACEHOLDER = /\{\{\s*(secret:)?([A-Za-z_][A-Za-z0-9_.-]*)\s*\}\}/g;
-const DEFAULT_TIMEOUT_MS = 30_000;
+import { buildGraphqlRequest } from '../request/build-graphql';
+import { Substituter } from './substitute';
 
 export type ResolveOutcome =
   | { kind: 'resolved'; request: ResolvedRequest }
@@ -26,85 +25,18 @@ export async function resolveCase(args: {
     return { kind: 'skipped', reason: `Case is limited to [${kase.environments.join(', ')}]; active environment is "${envName}".` };
   }
 
-  const request = file.request;
-  if (!isGraphqlRequest(request)) {
+  if (!isGraphqlRequest(file.request)) {
     // Task 3 of the HTTP core plan replaces this with the HTTP request builder.
     return { kind: 'error', message: `Cannot resolve case "${kase.name}": HTTP requests are not supported yet.`, missing: [] };
   }
 
   const scope: Record<string, Primitive> = { ...(env?.vars ?? {}), ...(file.vars ?? {}), ...(kase.vars ?? {}) };
-  const missingVars = new Set<string>();
-  const missingSecrets = new Set<string>();
-  const cyclicVars = new Set<string>();
+  const sub = new Substituter(scope, secrets);
+  const request = await buildGraphqlRequest(file.request, env?.headers, sub);
 
-  const sub = async (input: string, resolving: Set<string>): Promise<string> => {
-    let out = '';
-    let last = 0;
-    for (const m of input.matchAll(PLACEHOLDER)) {
-      out += input.slice(last, m.index);
-      const [, isSecret, name] = m;
-      if (isSecret) {
-        const v = await secrets(name!);
-        if (v === undefined) missingSecrets.add(name!);
-        out += v ?? '';
-      } else {
-        const raw = scope[name!];
-        // A var's *value* may itself be a secret reference (one nesting level, e.g. token: "{{secret:T}}").
-        if (raw === undefined) {
-          missingVars.add(name!);
-        } else if (resolving.has(name!)) {
-          // A variable whose value leads back to itself would recurse forever.
-          cyclicVars.add(name!);
-        } else {
-          // Reset lastIndex BEFORE recursing: matchAll seeds its clone from the
-          // original regex's lastIndex, so a stale offset would skip the match.
-          const hasPlaceholder = PLACEHOLDER.test(String(raw));
-          PLACEHOLDER.lastIndex = 0;
-          if (typeof raw === 'string' && hasPlaceholder) {
-            resolving.add(name!);
-            out += await sub(raw, resolving);
-            resolving.delete(name!);
-          } else {
-            out += String(raw ?? '');
-          }
-        }
-      }
-      last = m.index! + m[0].length;
-    }
-    return out + input.slice(last);
-  };
-
-  const url = await sub(request.url, new Set());
-
-  const headers: Record<string, string> = {};
-  for (const [k, v] of Object.entries({ ...(env?.headers ?? {}), ...(request.headers ?? {}) })) {
-    headers[k.toLowerCase()] = await sub(v, new Set());
+  const problems = sub.problems();
+  if (problems) {
+    return { kind: 'error', message: `Cannot resolve case "${kase.name}": ${problems}.`, missing: [...sub.missingSecrets] };
   }
-
-  let variables: Record<string, unknown> | undefined;
-  if (request.variables) {
-    variables = {};
-    for (const [k, v] of Object.entries(request.variables)) {
-      variables[k] = typeof v === 'string' ? await sub(v, new Set()) : v;
-    }
-  }
-
-  if (missingSecrets.size > 0 || missingVars.size > 0 || cyclicVars.size > 0) {
-    const parts: string[] = [];
-    if (missingSecrets.size) parts.push(`missing secrets: ${[...missingSecrets].join(', ')}`);
-    if (missingVars.size) parts.push(`undefined variables: ${[...missingVars].join(', ')}`);
-    if (cyclicVars.size) parts.push(`cyclic variable references: ${[...cyclicVars].join(', ')}`);
-    return { kind: 'error', message: `Cannot resolve case "${kase.name}": ${parts.join('; ')}.`, missing: [...missingSecrets] };
-  }
-
-  return {
-    kind: 'resolved',
-    request: {
-      method: 'POST',
-      url,
-      headers,
-      body: { query: request.operation, variables, operationName: request.operationName },
-      timeoutMs: request.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-    },
-  };
+  return { kind: 'resolved', request };
 }
