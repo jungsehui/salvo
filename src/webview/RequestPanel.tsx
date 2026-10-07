@@ -2,6 +2,7 @@ import type { Bridge } from './bridge';
 import type { GoodView } from './state';
 import { ScalarField } from './ScalarField';
 import { OperationEditor } from './OperationEditor';
+import { isGraphqlRequest } from '../shared/request-kind';
 
 export function RequestPanel({
   model,
@@ -17,6 +18,15 @@ export function RequestPanel({
   readOnly: boolean;
 }) {
   const req = model.file.request;
+  if (!isGraphqlRequest(req)) {
+    // Task 5 of the HTTP core plan replaces this with the HTTP request panel.
+    return (
+      <section className="panel request">
+        <h2>Request</h2>
+        <p className="muted">HTTP requests are edited in the text editor for now.</p>
+      </section>
+    );
+  }
   const headers = Object.entries(req.headers ?? {});
   return (
     <section className="panel request">

@@ -26,7 +26,7 @@ export interface SalvoFile {
    * Format major version.
    */
   salvo: 1;
-  request: SalvoRequest;
+  request: GraphqlRequest | HttpRequest;
   /**
    * File-level template variables. Precedence: environment < file < case.
    */
@@ -36,7 +36,7 @@ export interface SalvoFile {
   cases?: SalvoCase[];
   [k: string]: unknown;
 }
-export interface SalvoRequest {
+export interface GraphqlRequest {
   method?: "POST";
   /**
    * May contain {{var}} placeholders.
@@ -58,6 +58,53 @@ export interface SalvoRequest {
   };
   timeoutMs?: number;
   [k: string]: unknown;
+}
+export interface HttpRequest {
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
+  /**
+   * May contain {{var}} placeholders.
+   */
+  url: string;
+  /**
+   * Query parameters appended to the URL. A null value (literal, or one {{var}} resolving to null) is omitted.
+   */
+  query?: {
+    [k: string]: string | number | boolean | null;
+  };
+  headers?: {
+    [k: string]: string;
+  };
+  body?: HttpBody;
+  auth?: HttpAuth;
+  timeoutMs?: number;
+  [k: string]: unknown;
+}
+/**
+ * Exactly one of json, text, form.
+ */
+export interface HttpBody {
+  /**
+   * Any JSON value. A string that is exactly one {{var}} keeps the variable's type.
+   */
+  json?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  text?: string;
+  form?: {
+    [k: string]: string | number | boolean | null;
+  };
+}
+export interface HttpAuth {
+  basic: {
+    username: string;
+    password?: string;
+  };
 }
 export interface SalvoCase {
   /**

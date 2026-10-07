@@ -8,18 +8,10 @@
   "properties": {
     "salvo": { "type": "integer", "const": 1, "description": "Format major version." },
     "request": {
-      "title": "SalvoRequest",
-      "type": "object",
-      "required": ["url", "operation"],
-      "properties": {
-        "method": { "type": "string", "enum": ["POST"], "default": "POST" },
-        "url": { "type": "string", "description": "May contain {{var}} placeholders." },
-        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
-        "operation": { "type": "string", "description": "GraphQL document. No {{}} substitution here; use GraphQL variables." },
-        "operationName": { "type": "string" },
-        "variables": { "type": "object", "description": "GraphQL variables. Top-level string values may contain {{var}} placeholders; strings nested inside objects or arrays pass through untouched." },
-        "timeoutMs": { "type": "integer", "minimum": 1, "default": 30000 }
-      }
+      "oneOf": [
+        { "$ref": "#/definitions/graphqlRequest" },
+        { "$ref": "#/definitions/httpRequest" }
+      ]
     },
     "vars": {
       "type": "object",
@@ -46,6 +38,67 @@
     }
   },
   "definitions": {
+    "graphqlRequest": {
+      "title": "GraphqlRequest",
+      "type": "object",
+      "required": ["url", "operation"],
+      "properties": {
+        "method": { "type": "string", "enum": ["POST"], "default": "POST" },
+        "url": { "type": "string", "description": "May contain {{var}} placeholders." },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "operation": { "type": "string", "description": "GraphQL document. No {{}} substitution here; use GraphQL variables." },
+        "operationName": { "type": "string" },
+        "variables": { "type": "object", "description": "GraphQL variables. Top-level string values may contain {{var}} placeholders; strings nested inside objects or arrays pass through untouched." },
+        "timeoutMs": { "type": "integer", "minimum": 1, "default": 30000 }
+      }
+    },
+    "httpRequest": {
+      "title": "HttpRequest",
+      "type": "object",
+      "required": ["url"],
+      "not": { "required": ["operation"] },
+      "properties": {
+        "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"], "default": "GET" },
+        "url": { "type": "string", "description": "May contain {{var}} placeholders." },
+        "query": {
+          "type": "object",
+          "additionalProperties": { "type": ["string", "number", "boolean", "null"] },
+          "description": "Query parameters appended to the URL. A null value (literal, or one {{var}} resolving to null) is omitted."
+        },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "body": { "$ref": "#/definitions/httpBody" },
+        "auth": { "$ref": "#/definitions/httpAuth" },
+        "timeoutMs": { "type": "integer", "minimum": 1, "default": 30000 }
+      }
+    },
+    "httpBody": {
+      "title": "HttpBody",
+      "type": "object",
+      "description": "Exactly one of json, text, form.",
+      "additionalProperties": false,
+      "properties": {
+        "json": {
+          "type": ["object", "array", "string", "number", "boolean", "null"],
+          "description": "Any JSON value. A string that is exactly one {{var}} keeps the variable's type."
+        },
+        "text": { "type": "string" },
+        "form": { "type": "object", "additionalProperties": { "type": ["string", "number", "boolean", "null"] } }
+      }
+    },
+    "httpAuth": {
+      "title": "HttpAuth",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["basic"],
+      "properties": {
+        "basic": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["username"],
+          "properties": { "username": { "type": "string" }, "password": { "type": "string" } }
+        }
+      }
+    },
     "expect": {
       "title": "Expect",
       "type": "object",

@@ -1,6 +1,7 @@
 import type { SalvoFile } from '../generated/salvo-file';
 import type { EnvironmentDef } from '../generated/salvo-manifest';
 import type { Primitive, ResolvedRequest, SecretResolver } from '../types';
+import { isGraphqlRequest } from '../../shared/request-kind';
 
 const PLACEHOLDER = /\{\{\s*(secret:)?([A-Za-z_][A-Za-z0-9_.-]*)\s*\}\}/g;
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -23,6 +24,12 @@ export async function resolveCase(args: {
 
   if (kase.environments && !kase.environments.includes(envName)) {
     return { kind: 'skipped', reason: `Case is limited to [${kase.environments.join(', ')}]; active environment is "${envName}".` };
+  }
+
+  const request = file.request;
+  if (!isGraphqlRequest(request)) {
+    // Task 3 of the HTTP core plan replaces this with the HTTP request builder.
+    return { kind: 'error', message: `Cannot resolve case "${kase.name}": HTTP requests are not supported yet.`, missing: [] };
   }
 
   const scope: Record<string, Primitive> = { ...(env?.vars ?? {}), ...(file.vars ?? {}), ...(kase.vars ?? {}) };
@@ -67,17 +74,17 @@ export async function resolveCase(args: {
     return out + input.slice(last);
   };
 
-  const url = await sub(file.request.url, new Set());
+  const url = await sub(request.url, new Set());
 
   const headers: Record<string, string> = {};
-  for (const [k, v] of Object.entries({ ...(env?.headers ?? {}), ...(file.request.headers ?? {}) })) {
+  for (const [k, v] of Object.entries({ ...(env?.headers ?? {}), ...(request.headers ?? {}) })) {
     headers[k.toLowerCase()] = await sub(v, new Set());
   }
 
   let variables: Record<string, unknown> | undefined;
-  if (file.request.variables) {
+  if (request.variables) {
     variables = {};
-    for (const [k, v] of Object.entries(file.request.variables)) {
+    for (const [k, v] of Object.entries(request.variables)) {
       variables[k] = typeof v === 'string' ? await sub(v, new Set()) : v;
     }
   }
@@ -96,8 +103,8 @@ export async function resolveCase(args: {
       method: 'POST',
       url,
       headers,
-      body: { query: file.request.operation, variables, operationName: file.request.operationName },
-      timeoutMs: file.request.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      body: { query: request.operation, variables, operationName: request.operationName },
+      timeoutMs: request.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     },
   };
 }
