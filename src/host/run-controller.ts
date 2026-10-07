@@ -13,11 +13,15 @@ export async function runSalvoFile(args: {
 }): Promise<{ ok: false; issues: ParseIssue[] } | { ok: true; results: RunResult[]; report: string }> {
   const parsed = parseSalvoFile(args.fileText);
   if (!parsed.ok) return { ok: false, issues: parsed.issues };
-  // Record every resolved secret and every value derived from one (Basic credentials) so nothing a transport error or a server echo carries can leak into the report or a webview.
+  // Record every resolved secret and every value derived from one (Basic credentials, URL-encoded copies) so nothing a transport error or a server echo carries can leak into the report or a webview.
   const seen = new Set<string>();
   const secrets: SecretResolver = async (name) => {
     const value = await args.deps.secrets(name);
-    if (value !== undefined) seen.add(value);
+    if (value !== undefined) {
+      seen.add(value);
+      // Query entries and form bodies carry secrets URL-encoded; the encoding is per code point, so the encoded secret is still a substring of any larger encoded value.
+      seen.add(new URLSearchParams([['', value]]).toString().slice(1));
+    }
     return value;
   };
   const raw = await runCases({
