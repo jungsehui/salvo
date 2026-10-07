@@ -88,8 +88,9 @@ Placeholders are `{{name}}` and `{{secret:NAME}}` as today, with the same preced
    booleans after the null check.
 2. **Null omission.** If a single placeholder resolves to `null`, the entry is omitted:
    a header, a `query` entry, a `form` field, or a `json` object property. Inside a `json`
-   array, the element stays `null` (omitting would shift indexes). Literal `null` written
-   in the file (not a placeholder) is kept.
+   array, the element stays `null` (omitting would shift indexes). In `body.json`, a
+   literal `null` written in the file (not a placeholder) is kept. In `query` and `form`,
+   which carry text, any `null` (literal or resolved) omits the entry.
 3. **Where substitution applies.** `url` (string result), `query` values, header values,
    `body.text` (string result), `body.form` values, every string in `body.json` at any
    depth (object keys are not substituted), `auth.basic.username` and `.password`.
@@ -130,14 +131,23 @@ Expectations are unchanged: `status`, `headers`, `json`, and the six matchers.
 
 ```ts
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
+export interface GraphqlPayload { kind?: 'graphql'; query: string; variables?: Record<string, unknown>; operationName?: string }
+export interface EncodedBody { kind: 'encoded'; text: string; query?: never; variables?: never; operationName?: never }
+export interface NoBody { kind: 'none'; query?: never; variables?: never; operationName?: never }
+export type RequestBody = GraphqlPayload | EncodedBody | NoBody;
 export interface ResolvedRequest {
   method: HttpMethod;
   url: string;                      // final URL, query appended
   headers: Record<string, string>;  // lower-cased keys; content-type and authorization included
-  body?: string;                    // fully encoded
+  body: RequestBody;                // GraphQL payload (the transport makes it JSON), an encoded HTTP body, or none
   timeoutMs: number;
 }
 ```
+
+Amended during planning (2026-10-07): the first draft made `body` a plain string. Two
+existing test files read `request.body.query` and build a `{ query, variables }` body, and
+success criterion 3 forbids changing them. The union keeps that shape valid (the GraphQL
+variant's `kind` is optional) while HTTP builders hand the transport an encoded body.
 
 | Module | Responsibility |
 |---|---|
