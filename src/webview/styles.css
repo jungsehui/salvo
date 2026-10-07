@@ -48,7 +48,7 @@ pre.body { max-height: 60vh; overflow: auto; }
 .operation-editor .cm-editor { border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); min-height: 160px; font-size: 12px; }
 .operation-editor .cm-editor.cm-focused { outline: 1px solid var(--vscode-focusBorder); }
 .cm-tooltip pre.hover { margin: 0; padding: 4px 8px; }
-input:disabled { opacity: 0.6; }
+input:disabled, textarea:disabled, select:disabled { opacity: 0.6; }
 .operation-readonly { border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); padding: 6px 8px; min-height: 160px; opacity: 0.85; }
 .field textarea { flex: 1; min-height: 6em; font-family: var(--vscode-editor-font-family); resize: vertical; }
 .field-group { margin-top: 8px; }

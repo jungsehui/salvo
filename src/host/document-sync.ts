@@ -1,4 +1,4 @@
-import { isCollection, isMap, isNode, parseDocument } from 'yaml';
+import { isCollection, isMap, isNode, isScalar, isSeq, parseDocument, type Document, type Node } from 'yaml';
 import { parseSalvoFile } from '../core/format/parse-salvo-file';
 import { updateScalar } from '../core/format/update-scalar';
 import { appendCase, removeCase } from '../core/format/edit-structure';
@@ -31,6 +31,45 @@ export function coerceLike(current: unknown, raw: string): string | number | boo
   }
   if (typeof current === 'boolean' && (raw === 'true' || raw === 'false')) return raw === 'true';
   return raw;
+}
+
+const sameJson = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
+const isPlainObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+/** A new node for `value` in place of `current`, keeping its flow style and the comments on its own line. */
+function replacementNode(doc: Document, current: unknown, value: unknown): Node {
+  const node = doc.createNode(value);
+  if (isCollection(current) && current.flow === true && isCollection(node)) node.flow = true;
+  if (isNode(current)) {
+    if (current.comment) node.comment = current.comment;
+    if (current.commentBefore) node.commentBefore = current.commentBefore;
+  }
+  return node;
+}
+
+/**
+ * Patches `current` toward `value` and returns the node to keep in its place. Only entries whose
+ * value changed are rebuilt, so untouched entries keep their source formatting (10.0) and comments.
+ */
+function mergeJson(doc: Document, current: unknown, value: unknown): unknown {
+  if (sameJson(isNode(current) ? current.toJSON() : current, value)) return current;
+  // Keys other than plain strings (a YAML `1:` key) cannot be matched to JSON keys safely: replace the map.
+  if (isMap(current) && isPlainObject(value) && current.items.every((p) => isScalar(p.key) && typeof p.key.value === 'string')) {
+    for (const pair of [...current.items]) {
+      if (!Object.hasOwn(value, (pair.key as { value: string }).value)) current.delete(pair.key);
+    }
+    for (const [key, v] of Object.entries(value)) {
+      current.set(key, current.has(key) ? mergeJson(doc, current.get(key, true), v) : doc.createNode(v));
+    }
+    return current;
+  }
+  if (isSeq(current) && Array.isArray(value) && current.items.length === value.length) {
+    value.forEach((v, i) => {
+      current.items[i] = mergeJson(doc, current.items[i], v);
+    });
+    return current;
+  }
+  return replacementNode(doc, current, value);
 }
 
 function nextText(text: string, edit: FieldEdit): { ok: true; text: string } | { ok: false; error: string } {
@@ -80,15 +119,8 @@ function nextText(text: string, edit: FieldEdit): { ok: true; text: string } | {
       const current = doc.getIn(path, true);
       const currentValue = isNode(current) ? current.toJSON() : current;
       if (JSON.stringify(currentValue) === JSON.stringify(value)) return { ok: true, text };
-      // Build the node explicitly so a body written in flow style ({ ... }) stays in flow style.
-      const node = doc.createNode(value);
-      if (isCollection(current) && current.flow === true && isCollection(node)) node.flow = true;
-      // setIn swaps the whole node; carry over the comments that sit on the value's own line.
-      if (isNode(current)) {
-        if (current.comment) node.comment = current.comment;
-        if (current.commentBefore) node.commentBefore = current.commentBefore;
-      }
-      doc.setIn(path, node);
+      const next = mergeJson(doc, current, value);
+      if (next !== current) doc.setIn(path, next);
       return { ok: true, text: doc.toString({ lineWidth: 0 }) };
     }
     case 'appendCase':
