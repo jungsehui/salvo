@@ -14,7 +14,7 @@ export async function runCases(args: {
   envName: string;
   manifest: SalvoManifest | undefined;
   selected: number[] | 'all';
-  deps: { secrets: SecretResolver; send: Transport };
+  deps: { secrets: SecretResolver; send: Transport; sensitive?: (value: string) => void };
 }): Promise<RunResult[]> {
   const { file, envName, manifest, deps } = args;
   const env = manifest?.environments?.[envName];
@@ -42,7 +42,7 @@ export async function runCases(args: {
 
     let resolved;
     try {
-      resolved = await resolveCase({ file, envName, env, caseIndex: i, secrets: deps.secrets });
+      resolved = await resolveCase({ file, envName, env, caseIndex: i, secrets: deps.secrets, sensitive: deps.sensitive });
     } catch (e) {
       results.push({ ...base, outcome: 'error', assertions: [], error: e instanceof Error ? e.message : String(e) });
       continue;

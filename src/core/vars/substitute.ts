@@ -32,7 +32,7 @@ export class Substituter {
     if (!m) return this.text(input);
     const [, isSecret, name] = m;
     if (isSecret) return this.secret(name!);
-    const raw = this.scope[name!];
+    const raw = Object.hasOwn(this.scope, name!) ? this.scope[name!] : undefined;
     if (raw === undefined) {
       this.missingVars.add(name!);
       return '';
@@ -58,7 +58,8 @@ export class Substituter {
       for (const [key, item] of Object.entries(value)) {
         const resolved = await this.json(item);
         if (typeof item === 'string' && resolved === null) continue; // a placeholder that resolved to null
-        out[key] = resolved;
+        // defineProperty keeps a "__proto__" key as an own property instead of setting the prototype.
+        Object.defineProperty(out, key, { value: resolved, enumerable: true, writable: true, configurable: true });
       }
       return out;
     }
@@ -89,7 +90,7 @@ export class Substituter {
       if (isSecret) {
         out += await this.secret(name!);
       } else {
-        const raw = this.scope[name!];
+        const raw = Object.hasOwn(this.scope, name!) ? this.scope[name!] : undefined;
         // A var's *value* may itself be a secret reference (one nesting level, e.g. token: "{{secret:T}}").
         if (raw === undefined) {
           this.missingVars.add(name!);

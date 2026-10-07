@@ -13,8 +13,7 @@ export async function runSalvoFile(args: {
 }): Promise<{ ok: false; issues: ParseIssue[] } | { ok: true; results: RunResult[]; report: string }> {
   const parsed = parseSalvoFile(args.fileText);
   if (!parsed.ok) return { ok: false, issues: parsed.issues };
-  // Record every resolved value so nothing a transport error or a server echo
-  // carries can leak into the report or a webview (plan 3a tripwire).
+  // Record every resolved secret and every value derived from one (Basic credentials) so nothing a transport error or a server echo carries can leak into the report or a webview.
   const seen = new Set<string>();
   const secrets: SecretResolver = async (name) => {
     const value = await args.deps.secrets(name);
@@ -26,7 +25,7 @@ export async function runSalvoFile(args: {
     envName: args.envName,
     manifest: args.manifest,
     selected: args.selected ?? 'all',
-    deps: { secrets, send: args.deps.send },
+    deps: { secrets, send: args.deps.send, sensitive: (value) => seen.add(value) },
   });
   const results = redactResults(raw, [...seen]);
   return { ok: true, results, report: formatRunReport(results, args.envName) };
