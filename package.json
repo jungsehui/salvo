@@ -2,8 +2,8 @@
   "name": "salvo",
   "displayName": "Salvo: API Testing with Cases",
   "icon": "media/icon.png",
-  "description": "Test the APIs behind your web and mobile apps from VS Code: one request, many named cases, each with its own expectations. GraphQL over HTTP today, with the schema read from a local SDL file; more protocols are on the roadmap.",
-  "version": "0.1.1",
+  "description": "Test the APIs behind your web and mobile apps from VS Code: one request, many named cases, each with its own expectations. REST and GraphQL over HTTP, with GraphQL schemas read from a local SDL file.",
+  "version": "0.2.0",
   "license": "MIT",
   "publisher": "jungsehui",
   "repository": {
@@ -24,6 +24,7 @@
     "api testing",
     "graphql",
     "http",
+    "rest",
     "test cases",
     "sdl",
     "introspection"

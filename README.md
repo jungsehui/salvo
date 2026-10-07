@@ -92,6 +92,37 @@ Measured on a 246KB federated SDL with 852 types:
 | autocomplete at query root (200 suggestions) | 1.8ms | <0.1ms |
 | diagnostics on an invalid query | 6.2ms | - |
 
+## REST over HTTP
+
+A request without `operation` is a plain HTTP request. The same cases,
+environments, secrets, and expectations apply:
+
+```yaml
+# me.salvo
+request:
+  method: GET
+  url: "{{baseUrl}}/me"
+  headers:
+    authorization: "{{auth}}"
+
+cases:
+  - name: valid token
+    vars: { auth: "Bearer {{secret:VALID_TOKEN}}" }
+    expect: { status: 200 }
+  - name: no permission
+    vars: { auth: "Bearer {{secret:NOPERM_TOKEN}}" }
+    expect: { status: 403 }
+  - name: no token
+    vars: { auth: null }      # null leaves the header out entirely
+    expect: { status: 401 }
+```
+
+Supported today: every method, `query` parameters, headers, `json`, `text`
+and `form` bodies, and `auth: { basic: ... }`. Inside a JSON body, a value that
+is exactly one `{{var}}` keeps the variable's type, and a `null` value leaves
+its header, parameter, field, or property out. File uploads, OAuth2, and AWS
+signing come in later releases.
+
 ## What it will not do
 
 Saying no is part of the design. Each of these is a deliberate exclusion with a reason.
@@ -117,6 +148,7 @@ edit (comments, key order, and block scalars survive; the first edit may
 normalize indentation, comment spacing, and hand-wrapped plain scalars), so
 `git diff` stays readable and the text editor can stay open next to it.
 Expectations (`expect`) are shown read-only; edit them in the text editor.
+HTTP requests get a method picker and fields for their query, headers, body, and Basic auth.
 
 ## Design
 
@@ -134,8 +166,8 @@ Full write-up in [`.claude/architecture.md`](https://github.com/jungsehui/salvo/
 | Milestone | Scope |
 |---|---|
 | **v0.1** | GraphQL execution, local SDL schema, autocomplete, environment × case model, declarative assertions, secrets |
-| v0.2 | Visual query builder, schema documentation panel, operation history |
-| v0.3 | Full HTTP surface (all methods, six body types, five auth schemes), `.http` import |
+| **v0.2** | REST over HTTP: methods, query, json/text/form bodies, Basic auth (0.2.0); then file uploads, OAuth2, AWS SigV4, `.http` import, a richer response viewer |
+| v0.3 | Visual query builder, schema documentation panel, operation history |
 | v0.4 | Collection runner, request chaining |
 | v1.0 | Stabilization, docs, performance |
 | later | gRPC |

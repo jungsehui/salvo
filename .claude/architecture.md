@@ -332,6 +332,19 @@ pull 기반 설계는 안전하다. push 유실을 전제하고 설계했기 때
 없다. 전용 언어 id를 도입할 때(플랜 3b 이후) 함께 해소한다. 알려진 한계로
 수용하고 여기 기록한다.
 
+## 결정 11: HTTP 요청은 operation 없는 request다 (2026-10-07)
+
+GraphQL과 HTTP를 같은 `request` 블록에 두고 `operation`이 있는지로 구분한다.
+기존 GraphQL 파일은 그대로 동작하고, REST 사용자는 GraphQL 개념 없이 쓴다.
+스키마는 두 모양의 `oneOf`이고, 파서는 `operation` 유무로 모양을 먼저 골라
+그 모양의 오류만 보여 준다(`oneOf` 오류가 섞이지 않게).
+
+치환 규칙 두 개를 HTTP 요청에 더했다. 값 전체가 `{{var}}` 하나면 JSON 바디
+안에서 변수 타입을 유지한다. 그 값이 `null`이면 헤더, 쿼리, form 필드, JSON
+속성을 생략한다. GraphQL `variables`는 0.1 동작(최상위 문자열만 텍스트로
+치환)을 유지한다. 숫자로 적은 vars를 `String!` 변수에 넘기던 기존 파일이
+깨지기 때문이다. 상세는 `docs/superpowers/specs/2026-10-07-http-core-design.md`.
+
 ## 모듈 경계 원칙
 
 - `extension.ts`는 얇게. composition root + 커맨드 등록만

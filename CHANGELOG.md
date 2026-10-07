@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.0 (unreleased)
+
+- REST over HTTP: a request without `operation` is a plain HTTP request with
+  any method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS), `query`
+  parameters, headers, a `json`, `text`, or `form` body, and Basic auth.
+  Cases, environments, secrets, and expectations work exactly as for GraphQL.
+- Inside a JSON body, a value that is exactly one `{{var}}` keeps the
+  variable's type (numbers stay numbers). A `null` value leaves its header,
+  query parameter, form field, or JSON property out, so a "no token" case can
+  omit the Authorization header.
+- The visual editor shows HTTP requests with a method picker and fields for
+  the query, headers, body, and Basic auth.
+- The quickstart gains two httpbin.org examples (bearer token and Basic auth).
+- Basic credentials are redacted from results and reports like secrets.
+- Changed: in GraphQL files too, a header whose value is exactly one `{{var}}`
+  that resolves to `null` is now left out instead of sent empty.
+- Changed: a URL that is not an absolute http or https URL after substitution
+  is reported as a case error before anything is sent.
+
 ## 0.1.1 (unreleased)
 
 - Visual editor: open any `.salvo` file with **Open With… → Salvo Editor** (or **Reopen Editor With…** on an open tab),

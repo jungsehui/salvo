@@ -1,0 +1,26 @@
+salvo: 1
+# One REST endpoint checked with three tokens at once, against the public
+# httpbin.org test service. Real tokens belong in secrets: run
+# "Salvo: Set Secret" and write "Bearer {{secret:NAME}}" instead of the demo value.
+request:
+  method: GET
+  url: "{{httpbinUrl}}/bearer"
+  headers:
+    authorization: "{{auth}}"
+
+cases:
+  - name: valid token
+    vars: { auth: "Bearer demo-token-123" }
+    expect:
+      status: 200
+      json:
+        authenticated: true
+
+  - name: empty token
+    vars: { auth: "Bearer " }
+    expect: { status: 401 }
+
+  # null leaves the Authorization header out entirely.
+  - name: no token
+    vars: { auth: null }
+    expect: { status: 401 }

@@ -5,6 +5,7 @@ environments:
   demo:
     vars:
       baseUrl: https://countries.trevorblades.com
+      httpbinUrl: https://httpbin.org
 schema:
   # A local SDL file: completions and checks work without introspection.
   sdl: ./countries.graphql

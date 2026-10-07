@@ -23,4 +23,14 @@ suite('salvo extension smoke', () => {
     const commands = await vscode.commands.getCommands(true);
     assert.ok(commands.includes('salvo.openEditor'), 'missing command salvo.openEditor');
   });
+
+  test('opens an HTTP .salvo file in the visual editor', async () => {
+    const folder = vscode.workspace.workspaceFolders?.[0];
+    assert.ok(folder, 'quickstart workspace folder missing');
+    const uri = vscode.Uri.joinPath(folder.uri, 'httpbin-bearer.salvo');
+    await vscode.commands.executeCommand('vscode.openWith', uri, 'salvo.editor');
+    const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+    assert.ok(input instanceof vscode.TabInputCustom, 'active tab is not a custom editor');
+    assert.strictEqual(input.uri.toString(), uri.toString());
+  });
 });

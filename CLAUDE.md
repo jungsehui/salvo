@@ -10,10 +10,10 @@ multiple named **cases** (valid token / expired / forbidden / none) that run as
 one salvo and assert declaratively. GraphQL is a first-class citizen and works
 against servers with introspection **disabled**, by reading a local SDL file.
 
-- **Status**: v0.1 complete (plans 1-3b merged: core, GraphQL layer,
-  extension foundation, visual editor). 0.1.0 is on the Marketplace as a
-  pre-release; 0.1.1 adds the visual editor. Next: v0.2 (query builder,
-  schema docs panel) per `.claude/roadmap.md`.
+- **Status**: v0.1 complete; 0.2.0 adds REST over HTTP (spec
+  `docs/superpowers/specs/2026-10-07-http-core-design.md`). Next v0.2
+  sub-projects: auth (OAuth2, AWS SigV4), file bodies, `.http` import,
+  response viewer, per `.claude/roadmap.md`.
 - **Marketplace ID**: `jungsehui.salvo` (publisher fixed, do not rename).
 - **License**: MIT.
 - **Target**: `engines.vscode` `^1.110.0` (`SecretStorage.keys()`가 들어온

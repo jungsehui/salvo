@@ -1,0 +1,26 @@
+salvo: 1
+# Basic auth checked with a right password, a wrong one, and none, against
+# httpbin.org. Real passwords belong in secrets: "{{secret:NAME}}".
+request:
+  method: GET
+  url: "{{httpbinUrl}}/basic-auth/demo/demo-pass"
+  auth:
+    basic: { username: "{{user}}", password: "{{password}}" }
+
+cases:
+  - name: right password
+    vars: { user: demo, password: demo-pass }
+    expect:
+      status: 200
+      json:
+        authenticated: true
+        user: demo
+
+  - name: wrong password
+    vars: { user: demo, password: wrong }
+    expect: { status: 401 }
+
+  # A null username sends no Authorization header at all.
+  - name: no credentials
+    vars: { user: null, password: "" }
+    expect: { status: 401 }
