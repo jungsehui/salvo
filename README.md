@@ -2,13 +2,13 @@
 
 A file-first API client for VS Code where **one request carries many named cases**.
 
-> **Status: pre-release 0.1.x on the Marketplace.**
-> `.salvo` files work in two editors: the plain text editor (GraphQL
+> **Status: 0.2.0 on the Marketplace.** Requests are REST over HTTP or
+> GraphQL. `.salvo` files work in two editors: the plain text editor (GraphQL
 > diagnostics, completions, hover) and the visual editor (request form,
 > cases, runs, responses). Environments, secrets, and case runs are shared
 > between them. See the
 > [roadmap](https://github.com/jungsehui/salvo/blob/main/.claude/roadmap.md)
-> for what v0.1 does and does not contain.
+> for what comes next.
 
 ## The problem
 

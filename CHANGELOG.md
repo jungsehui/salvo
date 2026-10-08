@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0 (unreleased)
+## 0.2.0 (2026-10-08)
 
 - REST over HTTP: a request without `operation` is a plain HTTP request with
   any method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS), `query`
@@ -19,7 +19,7 @@
 - Changed: a URL that is not an absolute http or https URL after substitution
   is reported as a case error before anything is sent.
 
-## 0.1.1 (unreleased)
+## 0.1.1 (not published; these changes ship in 0.2.0)
 
 - Visual editor: open any `.salvo` file with **Open With… → Salvo Editor** (or **Reopen Editor With…** on an open tab),
   the editor-title button, or `Salvo: Open Visual Editor`. Edit the URL,
