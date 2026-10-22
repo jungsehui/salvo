@@ -2,7 +2,7 @@
 
 A file-first API client for VS Code where **one request carries many named cases**.
 
-> **Status: 0.2.0 on the Marketplace.** Requests are REST over HTTP or
+> **Status: 0.2.x on the Marketplace.** Requests are REST over HTTP or
 > GraphQL. `.salvo` files work in two editors: the plain text editor (GraphQL
 > diagnostics, completions, hover) and the visual editor (request form,
 > cases, runs, responses). Environments, secrets, and case runs are shared
@@ -186,9 +186,19 @@ Salvo exists because of gaps in tools worth respecting, not because they are bad
 - **[REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client)** got file-first right years ago. Salvo will import its `.http` files.
 - **[GraphQL: Language Feature Support](https://marketplace.visualstudio.com/items?itemName=GraphQL.vscode-graphql)** is excellent as a language server and deliberately does not execute anything. Salvo builds on the library underneath it.
 
+## Feedback and support
+
+Salvo is maintained by one person in spare time. Report bugs and request
+features in [GitHub issues](https://github.com/jungsehui/salvo/issues); they
+are read as time allows, and there is no response-time guarantee. Report
+security problems privately, as described in
+[SECURITY.md](https://github.com/jungsehui/salvo/blob/main/SECURITY.md).
+Never paste real tokens or passwords into an issue.
+
 ## Development
 
-Requires **Node 20+** (`@vscode/vsce` declares `engines.node >= 20`).
+Requires **Node 22+** (`.nvmrc` pins 22; Node 20 reached end of life on
+2026-04-30).
 
 ```bash
 npm install

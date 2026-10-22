@@ -3,16 +3,19 @@
   "displayName": "Salvo: API Testing with Cases",
   "icon": "media/icon.png",
   "description": "Test the APIs behind your web and mobile apps from VS Code: one request, many named cases, each with its own expectations. REST and GraphQL over HTTP, with GraphQL schemas read from a local SDL file.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "license": "MIT",
   "publisher": "jungsehui",
   "repository": {
     "type": "git",
     "url": "https://github.com/jungsehui/salvo"
   },
+  "bugs": {
+    "url": "https://github.com/jungsehui/salvo/issues"
+  },
   "main": "./dist/extension.js",
   "engines": {
-    "node": ">=20",
+    "node": ">=22",
     "vscode": "^1.110.0"
   },
   "categories": [

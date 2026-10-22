@@ -1,0 +1,20 @@
+name: Feature request
+description: Suggest something Salvo should do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Salvo is maintained by one person in spare time. Requests are read as time allows, there is no response-time guarantee, and a request may not be built. See the [roadmap](https://github.com/jungsehui/salvo#roadmap) for what is planned.
+  - type: textarea
+    id: scenario
+    attributes:
+      label: What are you trying to test?
+      description: The API and the cases you want to check, not the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How would you expect it to work?
+      description: A sketch of the .salvo file or the editor behavior you have in mind.

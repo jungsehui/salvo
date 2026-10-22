@@ -17,7 +17,7 @@ against servers with introspection **disabled**, by reading a local SDL file.
 - **Marketplace ID**: `jungsehui.salvo` (publisher fixed, do not rename).
 - **License**: MIT.
 - **Target**: `engines.vscode` `^1.110.0` (`SecretStorage.keys()`가 들어온
-  버전). Node 20+ 빌드 / macOS first.
+  버전). Node 22+ 빌드(`.nvmrc`, mise가 읽음) / macOS first.
 
 ## The one-sentence pitch
 

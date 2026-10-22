@@ -83,6 +83,7 @@ v0.1 착수 전 미검증 항목은 2026-08-21 기준 **전부 해소됐다.**
 하나씩 스펙, 플랜, 구현을 거친다. 첫 하위 프로젝트는 HTTP 코어(메서드 전체,
 json/text/form 바디, Basic 인증, 비주얼 에디터는 GraphQL과 같은 수준)이고
 0.2.0으로 낸다. 스펙: `docs/superpowers/specs/2026-10-07-http-core-design.md`.
+**HTTP 코어는 0.2.0으로 2026-10-12(KST)에 배포했다.** 남은 하위 프로젝트는 아래 목록에서 고른다.
 
 - 메서드 전체, 헤더 편집, body 6종 (json / form-urlencoded / multipart / raw / binary / graphql)
 - auth (bearer / basic / apikey / oauth2 / aws sigv4)
@@ -181,6 +182,8 @@ LSP 서버를 쓸 필요가 없었다. `graphql-language-service`의 순수 함�
 REST Client가 open PR 61건으로 사실상 죽었고, 평점 4.91에도 릴리스가
 4년 멈췄다. 혼자 하는 프로젝트의 표준 실패 모드다.
 완화: 이슈 템플릿과 응답 SLA를 처음부터 낮게 공표한다. 과대 약속하지 않는다.
+2026-10-22 적용: 이슈 양식(버그, 기능 요청)과 `SECURITY.md`를 넣고, README와 양식에
+"여유 될 때 읽고 응답 시간은 보장하지 않는다"고 적었다.
 
 **7. 마켓플레이스 첫인상 (리뷰 추가)**
 "범용 API 클라이언트"로 이름 걸고 GraphQL 전용 v0.1을 내면 REST 사용자가

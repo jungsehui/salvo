@@ -1,6 +1,16 @@
 # Changelog
 
-## 0.2.0 (2026-10-08)
+## 0.2.1 (2026-10-22)
+
+- Security: `fast-uri`, a dependency of the bundled schema validator, is
+  updated to 3.1.9, which fixes three published advisories.
+- Issues now use bug and feature templates, and `SECURITY.md` describes how
+  to report a vulnerability privately.
+- Building from source now needs Node 22 or later (Node 20 reached end of life
+  on 2026-04-30). This does not change which Node the installed extension
+  runs on.
+
+## 0.2.0 (2026-10-12)
 
 - REST over HTTP: a request without `operation` is a plain HTTP request with
   any method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS), `query`

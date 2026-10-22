@@ -1,0 +1,38 @@
+name: Bug report
+description: Something in Salvo does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Salvo is maintained by one person in spare time. Issues are read as time allows; there is no response-time guarantee.
+
+        **Never paste real tokens, passwords, or other secret values.** Keep them as `{{secret:NAME}}` placeholders.
+  - type: input
+    id: salvo-version
+    attributes:
+      label: Salvo version
+      placeholder: "0.2.1"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: VS Code version and OS
+      placeholder: "1.140.0, macOS"
+    validations:
+      required: true
+  - type: textarea
+    id: file
+    attributes:
+      label: Smallest .salvo file that shows the problem
+      description: Add salvo.yaml if it matters. Replace hosts and values you cannot share.
+      render: yaml
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Steps, expected result, and actual result
+    validations:
+      required: true

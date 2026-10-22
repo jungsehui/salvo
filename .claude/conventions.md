@@ -105,8 +105,10 @@
 
 ## Build
 
-- **Node 20 이상이 필요하다.** `@vscode/vsce`의 engines가 `>= 20`이고
-  (2026-08-21 npm 확인) 전역 `File`은 Node 20부터 있다. 전작에서 Node 18로
-  빌드하다 실패한 실측 사례가 있으므로 처음부터 맞춰둔다.
+- **Node 22 이상이 필요하다.** Node 20은 2026-04-30에 지원이 끝났고
+  (nodejs/Release `schedule.json`), `test:vscode`도 Node 22 이상에서만 돈다.
+  `.nvmrc`가 22를 선언하고 mise가 이 파일을 읽는다. CI는 22와 24에서 돈다.
+  처음 기준이 Node 20이었던 이유는 `@vscode/vsce`의 engines(`>= 20`)와 전역
+  `File`이었다. 전작에서 Node 18로 빌드하다 실패한 실측 사례가 있다.
 - **push 전에 `gh auth switch -u jungsehui`.** 이 머신의 gh 기본 계정은
   `jungsehui202`(회사)이고, 이 레포 소유자는 `jungsehui`(개인)다.
