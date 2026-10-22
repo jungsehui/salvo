@@ -927,7 +927,7 @@ describe('graphql layer end to end', () => {
 
 Run: `npx vitest run tests/core/graphql-integration.test.ts`
 Expected: PASS.
-Then: `npm test && npm run check && npm run gen:check && (grep -ri "linkareer" src tests examples schemas; test $? -eq 1)`
+Then: `npm test && npm run check && npm run gen:check && (grep -ri "<company-name>" src tests examples schemas; test $? -eq 1)`
 Expected: all green, grep finds nothing.
 
 - [ ] **Step 3: Commit**
@@ -941,7 +941,7 @@ git commit -m "test: end-to-end proof of the graphql layer over file positions"
 
 ## Exit Criteria for Plan 2
 
-- All plan-1 gates still green plus the new suites; `grep -ri "linkareer"` still empty.
+- All plan-1 gates still green plus the new suites; `grep -ri "<company-name>"` still empty.
 - The lang layer's public surface uses FILE positions only (no 0-based op positions escape).
 - `loadSchema` failure paths all return issues (nothing throws), including the two shapes real SDL corpora exhibited (syntax break, unknown-type reference: the fixture-mutation tests cover the syntax class; unknown-type surfaces through the same GraphQLError path).
 - Polish batch from plan 1's final review is closed (M1–M5 + mutual-cycle pin).

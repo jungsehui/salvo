@@ -13,7 +13,7 @@ whole-branch 리뷰부터이며, API 529(서버 과부하)로 3회 실패한 지
 |---|---|
 | 브랜치 | `feat/v01-core-engine` (워크트리 `.worktrees/v01-core-engine/`) |
 | HEAD | `29f6dc5` (base `e5126f3`, 26 커밋) |
-| 게이트 | `npm test` 50/50 (11 파일), `npm run check` 클린, `npm run gen:check` 클린, `grep -ri linkareer src tests examples schemas` 0건 |
+| 게이트 | `npm test` 50/50 (11 파일), `npm run check` 클린, `npm run gen:check` 클린, `grep -ri "<company-name>" src tests examples schemas` 0건 |
 | 플랜 | `docs/superpowers/plans/2026-08-21-v01-core-engine.md` (실행 중 10여 회 수정됨. 수정 이유는 레저의 Ruling 항목들) |
 | SDD 레저 | `.superpowers/sdd/2026-08-21-v01-core-engine/progress.md` (**지우지 말 것.** 런이 끝난 게 아니라 중단된 것) |
 | 최종 리뷰 패키지 | `.superpowers/sdd/2026-08-21-v01-core-engine/review-e5126f3..29f6dc5.diff` (160KB, 생성 완료) |

@@ -2722,7 +2722,7 @@ Run: `npm run test:vscode`
 Expected: `2 passing`. If VS Code cannot be downloaded in this environment, report BLOCKED with the exact error; never fake the result.
 Then: `npm run package && unzip -l salvo-0.1.1.vsix | grep -E "dist/(extension|webview)\.(js|css)$"`
 Expected: `salvo-0.1.1.vsix` produced; the listing shows `extension/dist/extension.js`, `extension/dist/webview.js`, and `extension/dist/webview.css`.
-Then the full local gate: `npm test && npm run check && npm run gen:check && grep -ri "linkareer" src tests examples schemas; echo "grep exit $?"` (expected: no matches, exit 1 from grep).
+Then the full local gate: `npm test && npm run check && npm run gen:check && grep -ri "<company-name>" src tests examples schemas; echo "grep exit $?"` (expected: no matches, exit 1 from grep).
 
 - [ ] **Step 4: Commit**
 
@@ -2738,7 +2738,7 @@ git commit -m "test: visual editor smoke, docs for 0.1.1, version bump"
 - `npm test` (core+host+shared+webview), `npm run check` (both tsconfigs), `npm run gen:check`, `npm run build` (both bundles), `npm run test:vscode` (2 passing), `npm run package` (vsix carries `dist/webview.js` and `dist/webview.css`): all green.
 - Purity guard covers `src/core`, `src/host`, `src/shared`, `src/webview`; the webview bundle contains no `graphql-language-service`.
 - Manual F5 sanity (documented, not automated): open `examples/quickstart/countries.salvo` → `Salvo: Open Visual Editor` → env `demo` in the toolbar, **Run all cases** turns both dots green, the text editor beside it shows the minimal diff when a URL or case name is edited, and typing in the operation editor with `schema: ready` offers completions.
-- `grep -ri "linkareer" src tests examples schemas` still empty.
+- `grep -ri "<company-name>" src tests examples schemas` still empty.
 
 ## What v0.2 Will Consume
 

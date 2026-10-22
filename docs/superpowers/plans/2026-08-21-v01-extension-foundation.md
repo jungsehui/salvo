@@ -1232,7 +1232,7 @@ git commit -m "test: electron activation smoke and vsce packaging gate"
 - `npm test` (vitest, core+host), `npm run check`, `npm run gen:check`, `npm run build`, `npm run test:vscode`, `npm run package` — all green.
 - Purity guard covers `src/core` AND `src/host`; only `src/extension.ts` touches vscode.
 - Manual F5 sanity (documented, not automated): open `examples/quickstart/countries.salvo` — YAML highlighting, env in the status bar, `Salvo: Run Cases` prints a report against the public demo API.
-- `grep -ri "linkareer" src tests examples schemas` still empty.
+- `grep -ri "<company-name>" src tests examples schemas` still empty.
 
 ## What Plan 3b Will Consume
 

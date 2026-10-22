@@ -2016,7 +2016,7 @@ git commit -m "feat: quickstart example with end-to-end run against a fixture se
 - `npm test`, `npm run check`, `npm run gen:check` all pass.
 - `tests/core/no-vscode-import.test.ts` proves the core is VS Code-free.
 - Task 4's round-trip tests prove the `yaml` CST bet; if they failed, the escalation path was taken instead of shipping.
-- The repo contains zero company-specific strings (grep gate: `grep -ri "linkareer" src tests examples schemas` returns nothing).
+- The repo contains zero company-specific strings (grep gate: `grep -ri "<company-name>" src tests examples schemas` returns nothing).
 - A stranger can clone the repo, read `examples/quickstart/README.md`, and understand the model without any context about the author's employer.
 
 ## What Plans 2 and 3 Will Consume
